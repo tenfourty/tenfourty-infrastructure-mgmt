@@ -1,0 +1,23 @@
+---
+
+# TODO make sure we have the data dir setup for znc and restore from a tarsnap backup if it doesn't exist
+# TODO make sure we set ownership of the data dir correctly for znc
+
+  - name: make sure the docker container is running
+    docker:
+      image: tenfourty/znc-centos-docker:latest
+      name: znc
+      detach: True
+      volumes: /data/znc/:/znc-data
+      ports:
+        - 6667:6667
+        - 8080:8080
+        - 6697:6697
+      state: running
+
+  - name: open up the firewall for the ZNC services
+    firewalld: port={{item}} permanent=true state=enabled
+    with_items:
+      - 6667/tcp
+      - 6697/tcp
+      - 8080/tcp

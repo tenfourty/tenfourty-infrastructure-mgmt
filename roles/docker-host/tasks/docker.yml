@@ -1,0 +1,13 @@
+---
+
+  - name: install docker
+    yum: name={{item}} state=latest
+    with_items:
+      - docker-io
+      - python-docker-py # we need python-docker-py installed so we can manage docker containers with ansible
+
+  - name: make sure the docker service is enabled and running
+    service: name={{item}} enabled=yes state=started
+    with_items:
+      - docker
+

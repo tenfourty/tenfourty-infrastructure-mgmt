@@ -1,0 +1,12 @@
+---
+
+  - name: install the fail2ban package
+    yum: name={{item}} state=latest
+    with_items:
+      - fail2ban
+
+  - name: make sure the fail2ban service is enabled and running
+    service: name={{item}} enabled=yes state=started
+    with_items:
+      - fail2ban
+

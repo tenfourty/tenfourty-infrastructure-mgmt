@@ -1,0 +1,17 @@
+---
+# This is the top-level playbook that defines our entire infrastructure.
+
+- hosts: wahala
+#  user: tenfourty
+#  sudo: True
+  gather_facts: True
+#  vars_files:
+#    - vars/defaults.yml
+#    - vars/{{ 'testing' if testing is defined else 'user' }}.yml
+
+  roles:
+    - common
+    - docker-host
+    - znc
+#    - tarsnap
+

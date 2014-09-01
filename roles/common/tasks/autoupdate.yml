@@ -1,0 +1,12 @@
+---
+
+  - name: install the yum-cron package
+    yum: name={{item}} state=latest
+    with_items:
+      - yum-cron
+
+  - name: make sure the yum-cron service is enabled and running
+    service: name={{item}} enabled=yes state=started
+    with_items:
+      - yum-cron
+
