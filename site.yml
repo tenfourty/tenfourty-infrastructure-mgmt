@@ -1,7 +1,7 @@
 ---
 # This is the top-level playbook that defines our entire infrastructure.
 
-- hosts: wahala
+- hosts: fedora-workstation
 #  user: tenfourty
 #  sudo: True
   gather_facts: True
@@ -10,8 +10,5 @@
 #    - vars/{{ 'testing' if testing is defined else 'user' }}.yml
 
   roles:
-    - common
-    - docker-host
-    - znc
-#    - tarsnap
+    - workstation
 

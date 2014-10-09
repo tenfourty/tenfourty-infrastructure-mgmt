@@ -1,0 +1,3 @@
+- include: disable_selinux.yml
+- include: install_pkgs.yml
+- include: system_updates.yml

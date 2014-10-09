@@ -1,0 +1,79 @@
+---
+
+- name: Check if fedy is installed
+  command: rpm -q fedy.noarch
+  register: rpm_check
+  ignore_errors: yes
+
+- name: Install fedy if it isn't installed
+  shell: su -c "curl https://satya164.github.io/fedy/fedy-installer -o fedy-installer && chmod +x fedy-installer && ./fedy-installer"
+  when: rpm_check.rc == 1
+
+- name: Check if the postinstallerf package (and hence repository) is installed 
+  command: rpm -q postinstallerf
+  register: postinstallerf_check
+  ignore_errors: yes
+
+- name: add the postinstellerf repository if it isn't already present
+  shell: su -c "yum -y install wget && wget -P /etc/yum.repos.d/ https://raw.github.com/kuboosoft/postinstallerf/master/postinstallerf.repo && yum -y install postinstallerf"
+  when: postinstallerf_check.rc ==1
+
+- name: fedy yum keep cached on
+  shell: fedy -e yum_keepcache
+
+- name: fedy install rpmfusion repos
+  shell: fedy -e rpmfusion_repos
+
+- name: install all of my other packages
+  yum: name={{ item }} state=present
+  with_items: packages
+
+- name: fedy install arista transcoder
+  shell: fedy -e arista_transcoder
+
+- name: fedy install elegance colors
+  shell: fedy -e elegance_colors
+
+- name: fedy install google chrome
+  shell: fedy -e google_chrome
+
+- name: fedy install google talk plugin
+  shell: fedy -e google_talkplugin
+
+#- name: fedy install moka themes
+#  shell: fedy -e moka_themes
+
+- name: fedy install numix themes
+  shell: fedy -e numix_themes
+
+- name: fedy install skype
+  shell: fedy -e skype_linux
+
+- name: fedy install sublime text 3
+  shell: fedy -e sublime_text3
+
+- name: fedy install the tor browser
+  shell: fedy -e tor_browser
+
+- name: fedy install flash
+  shell: fedy -e adobe_flash
+
+- name: fedy set the color prompt
+  shell: fedy -e color_prompt
+
+- name: fedy install microsoft core fonts
+  shell: fedy -e core_fonts
+
+- name: fedy set the ssd io scheduler
+  shell: fedy -e disk_io_scheduler
+
+- name: fedy enable dvd playback
+  shell: fedy -e dvd_playback
+
+- name: fedy tweak font rendering
+  shell: fedy -e font_rendering
+
+- name: fedy install media codecs
+  shell: fedy -e media_codecs
+
+
