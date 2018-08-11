@@ -1,32 +1,161 @@
 version: '2'
 services:
-  qnet_dhcp:
-    image: alpine
-    command: ifconfig eth0
-    networks:
-      - qnet-dhcp
+#  qnet_dhcp:
+#    image: alpine
+#    command: ifconfig eth0
+#    networks:
+#      - qnet-dhcp
 
-  qnet_static:
-    image: alpine
-    command: ifconfig eth0
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    hostname: pihole
+    restart: always
+    cpu_shares: 512
+    mem_limit: 256m
+    user: 0:0
+    environment:
+      - TZ=Europe/Paris
+      - DNS1=1.1.1.1
+      - DNS2=1.0.0.1
+      - IPv6=false
+      - ServerIP=192.168.1.253
+    env_file:
+      - /share/Container/scripts/pi-holeDockerEnvSecrets
+    volumes:
+      - /share/Container/container-data/pi-hole/dnsmasq.d:/etc/dnsmasq.d:rw
+      - /share/Container/container-data/pi-hole:/etc/pihole:rw
     networks:
       qnet-static:
-        ipv4_address: 192.168.1.10
+        ipv4_address: 192.168.1.253
+#    logging:
+#      driver: syslog
+#      options:
+#        syslog-address: "tcp://192.168.1.1:514"
+#        tag: pi-hole
+#        syslog-format: rfc5424micro
+
+  transmission:
+    container_name: transmission
+    image: haugene/transmission-openvpn:latest
+    restart: always
+    cpu_shares: 512
+    mem_limit: 256m
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - "/dev/net/tun"
+    env_file:
+      - /share/Container/scripts/transmissionDockerEnv
+      - /share/Container/scripts/transmissionDockerEnvSecrets
+    volumes:
+      - /share/Container/container-data/transmission/:/config:rw
+      - /share/QDownload/transmission/:/data:rw
+      - /share/QDownload/transmission/:/downloads:rw
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/resolv.conf:/etc/resolv.conf:ro
+    networks:
+      qnet-static:
+        ipv4_address: 192.168.1.251
+#    network_mode: "host"
+#    logging:
+#      driver: syslog
+#      options:
+#        syslog-address: "tcp://192.168.1.1:514"
+#        tag: transmission
+#        syslog-format: rfc5424micro
+
+  couchpotato:
+    container_name: couchpotato
+    image: linuxserver/couchpotato:latest
+    restart: always
+    cpu_shares: 1024
+    mem_limit: 256m
+    environment:
+      - TZ=Europe/Paris
+      - PUID=0
+      - PGID=0
+    volumes:
+      - /share/QMultimedia/Video/Movies:/movies:rw
+      - /share/Container/container-data/couchpotato/:/config:rw
+      - /share/QDownload/transmission/:/downloads:rw
+    ports:
+      - "5050:5050"
+    network_mode: "host"
+#    logging:
+#      driver: syslog
+#      options:
+#        syslog-address: "tcp://192.168.1.1:514"
+#        tag: couchpotato
+#        syslog-format: rfc5424micro
+
+  sickrage:
+    container_name: sickrage
+    image: linuxserver/sickrage:latest
+    restart: always
+    cpu_shares: 1024
+    mem_limit: 256m
+    environment:
+      - TZ=Europe/Paris
+      - PUID=0
+      - PGID=0
+    volumes:
+      - /share/QMultimedia/Video/TV:/tv:rw
+      - /share/Container/container-data/sickrage/:/config:rw
+      - /share/QDownload/transmission/:/downloads:rw
+ #   ports:
+ #     - "7073:8081"
+    dns: 192.168.1.253
+    networks:
+      qnet-static:
+        ipv4_address: 192.168.1.252
+#    logging:
+#      driver: syslog
+#      options:
+#        syslog-address: "tcp://192.168.1.1:514"
+#        tag: sickrage
+#        syslog-format: rfc5424micro
+
+  plex:
+    container_name: plex
+    image: plexinc/pms-docker:plexpass
+    restart: always
+    cpu_shares: 4096
+    mem_limit: 3g
+#    network_mode: "host"
+    environment:
+      - TZ=Europe/Paris
+      - PLEX_UID=0
+      - PLEX_GID=0
+    volumes:
+      - /share/Container/container-data/plex/config:/config:rw
+      - /share/QMultimedia:/data:rw
+      - /share/Container/container-data/plex/transcode:/transcode:rw
+    networks:
+      qnet-static:
+        ipv4_address: 192.168.1.250
+#    logging:
+#      driver: syslog
+#      options:
+#        syslog-address: "tcp://192.168.1.1:514"
+#        tag: plex
+#        syslog-format: rfc5424micro
 
 networks:
-  qnet-dhcp:
-    driver: qnet
-    ipam:
-      driver: qnet
-      driver_opts:
-        iface: "eth0"
+#  qnet-dhcp:
+#    driver: qnet
+#    ipam:
+#      driver: qnet
+#      options:
+#        iface: "bond0"
 
   qnet-static:
     driver: qnet
     ipam:
       driver: qnet
-      driver_opts:
-        iface: "eth0"
+      options:
+        iface: "bond0"
       config:
         - subnet: 192.168.1.0/23
           gateway: 192.168.1.254
+
