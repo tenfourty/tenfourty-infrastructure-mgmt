@@ -18,9 +18,6 @@
     verbosity: 3
 
 - name: Backup files that are not links
-  # debug:
-  #   msg: "{{ item.item.0 }} {{ item.item.1 }}"
-  #   verbosity: 3
   command: "mv {{ item.item.0 }} {{ item.item.0 }}.bak"
   loop: "{{ files.results }}"
   when: item.stat.exists and item.stat.islnk is defined and item.stat.islnk == false
@@ -38,26 +35,3 @@
     src: "{{ item.0 }}"
     dest: "{{ item.1 }}"
   loop: "{{ files_with_secrets }}"
-
-#   fail: msg="{{ item.item.path }} is not a link"
-#   when: not item.stat.islnk
-#   with_items: "{{ links.results }}"
-
-# - debug:
-#     var: backup_items
-  
-
-# - name: Remove existing tenfourty_infra file if a replacement is being linked.
-#   file:
-#     path: "{{ tenfourty_infra_home }}/{{ tenfourty_infra_dotfiles[item.0] }}"
-#     state: absent
-#   when: "'@' not in item.1.stdout"
-#   with_indexed_items: "{{ existing_dotfile_info.results }}"
-
-# - name: Link tenfourty_infra into home folder.
-#   file:
-#     src: "{{ tenfourty_infra_repo_local_destination }}/{{ item }}"
-#     dest: "{{ tenfourty_infra_home }}/{{ item }}"
-#     state: link
-#   become: no
-#   with_items: "{{ tenfourty_infra_dotfiles }}"
