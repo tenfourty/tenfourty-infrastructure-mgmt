@@ -21,7 +21,7 @@ services:
       - IPv6=false
       - ServerIP=192.168.1.253
     env_file:
-      - /share/Container/scripts/pi-holeDockerEnvSecrets
+      - pi-holeDockerEnvSecrets
     volumes:
       - /share/Container/container-data/pi-hole/dnsmasq.d:/etc/dnsmasq.d:rw
       - /share/Container/container-data/pi-hole:/etc/pihole:rw
@@ -46,8 +46,8 @@ services:
     devices:
       - "/dev/net/tun"
     env_file:
-      - /share/Container/scripts/transmissionDockerEnv
-      - /share/Container/scripts/transmissionDockerEnvSecrets
+      - transmissionDockerEnv
+      - transmissionDockerEnvSecrets
     volumes:
       - /share/Container/container-data/transmission/:/config:rw
       - /share/QDownload/transmission/:/data:rw
