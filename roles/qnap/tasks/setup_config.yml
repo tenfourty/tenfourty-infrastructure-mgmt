@@ -1,0 +1,58 @@
+---
+- name: Ensure tenfourty_infra repository is cloned locally.
+  git:
+    executable: "/opt/bin/git"
+    repo: "{{ infra_repo }}"
+    dest: "{{ infra_repo_local_destination }}"
+    accept_hostkey: "{{ infra_repo_accept_hostkey }}"
+  become: no
+
+- name: Getting file info on tenfourty_infra_dotfiles
+  stat:
+    path: "{{ item.0 }}"
+  loop: "{{ link_files }}"
+  register: files
+  
+- debug:
+    var: files
+    verbosity: 3
+
+- name: Backup files that are not links
+  debug:
+    msg: "{{ item.item.0 }} {{ item.item.1 }}"
+  #   verbosity: 3
+  # command: "mv {{ item.item.0 }} {{ item.item.0 }}.bak"
+  loop: "{{ files|flatten(levels=1) }}"
+  when: item.stat.exists and item.stat.islnk is defined and item.stat.islnk == false
+
+# - name: Ensure all configured files are linked to.
+#   file:
+#     src: "{{ infra_repo_local_destination }}/{{ item.1 }}"
+#     path: "{{ item.0 }}"
+#     state: link
+#   loop: "{{ link_files }}"
+
+
+
+#   fail: msg="{{ item.item.path }} is not a link"
+#   when: not item.stat.islnk
+#   with_items: "{{ links.results }}"
+
+# - debug:
+#     var: backup_items
+  
+
+# - name: Remove existing tenfourty_infra file if a replacement is being linked.
+#   file:
+#     path: "{{ tenfourty_infra_home }}/{{ tenfourty_infra_dotfiles[item.0] }}"
+#     state: absent
+#   when: "'@' not in item.1.stdout"
+#   with_indexed_items: "{{ existing_dotfile_info.results }}"
+
+# - name: Link tenfourty_infra into home folder.
+#   file:
+#     src: "{{ tenfourty_infra_repo_local_destination }}/{{ item }}"
+#     dest: "{{ tenfourty_infra_home }}/{{ item }}"
+#     state: link
+#   become: no
+#   with_items: "{{ tenfourty_infra_dotfiles }}"

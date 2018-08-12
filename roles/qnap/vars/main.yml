@@ -1,0 +1,11 @@
+---
+infra_repo: "https://github.com/tenfourty/tenfourty-infrastructure-mgmt.git"
+infra_repo_accept_hostkey: no
+infra_repo_local_destination: "/root/tenfourty-infrastructure-mgmt"
+
+link_files:
+  - ["/root/.bash_logout", "files/qnap/dotfiles/.bash_logout"]
+  - ["/root/.bash_profile", "files/qnap/dotfiles/.bash_profile"]
+  - ["/root/.bashrc", "files/qnap/dotfiles/.bashrc"]
+  - ["/root/.profile", "files/qnap/dotfiles/.profile"]
+  - ["/root/.vimrc", "files/qnap/dotfiles/.vimrc"]
