@@ -18,19 +18,20 @@
     verbosity: 3
 
 - name: Backup files that are not links
-  debug:
-    msg: "{{ item.item.0 }} {{ item.item.1 }}"
+  # debug:
+  #   msg: "{{ item.item.0 }} {{ item.item.1 }}"
   #   verbosity: 3
-  # command: "mv {{ item.item.0 }} {{ item.item.0 }}.bak"
-  loop: "{{ files|flatten(levels=1) }}"
+  command: "mv {{ item.item.0 }} {{ item.item.0 }}.bak"
+  loop: "{{ files.results }}"
   when: item.stat.exists and item.stat.islnk is defined and item.stat.islnk == false
 
-# - name: Ensure all configured files are linked to.
-#   file:
-#     src: "{{ infra_repo_local_destination }}/{{ item.1 }}"
-#     path: "{{ item.0 }}"
-#     state: link
-#   loop: "{{ link_files }}"
+- name: Ensure all configured files are linked to.
+  file:
+    src: "{{ infra_repo_local_destination }}/{{ item.1 }}"
+    path: "{{ item.0 }}"
+    state: link
+    force: yes
+  loop: "{{ link_files }}"
 
 
 
