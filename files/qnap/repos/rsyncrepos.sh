@@ -30,17 +30,17 @@ else
     echo "Target directory $localroot/centos not present."
 fi
 
-if [ -d $localroot/centos/6.9 ] ; then
+if [ -d $localroot/centos/6.10 ] ; then
     echo "========================================="
-    echo "Syncing $localroot/centos/6.9/"
+    echo "Syncing $localroot/centos/6.10/"
     echo "========================================="
     touch $lockfile
-    rsync  -avSHP --delete --exclude "local*" $mirror::$mirrorcentosdir/6.9/ $localroot/centos/6.9/
+    rsync  -avSHP --delete --exclude "local*" $mirror::$mirrorcentosdir/6.10/ $localroot/centos/6.10/
     rm -f $lockfile
     echo "+++++++++++++++++++++++++++++++++++++++++"
     echo "+++++++++++++++++++++++++++++++++++++++++"
 else
-    echo "Target directory $localroot/centos/6.9 not present."
+    echo "Target directory $localroot/centos/6.10 not present."
 fi
 
 if [ -d $localroot/centos/7.5.1804 ] ; then
