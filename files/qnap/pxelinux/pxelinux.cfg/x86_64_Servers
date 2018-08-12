@@ -1,0 +1,41 @@
+MENU TITLE x86_64 Server Menu
+
+LABEL Main Menu
+        MENU LABEL Main Menu
+        KERNEL menu.c32
+        APPEND pxelinux.cfg/default
+
+LABEL CentOS 6 Rescue
+        KERNEL images/centos/x86_64/6/vmlinuz
+        MENU LABEL ^CentOS 6 Rescue
+        APPEND initrd=images/centos/x86_64/6/initrd.img ramdisk_size=10000 text rescue ks=http://oga/kickstart/ks_centos_6_x86_64_rescue.cfg
+
+LABEL CentOS 6 Install, local repo, no kickstart
+        KERNEL images/centos/x86_64/6/vmlinuz
+        MENU LABEL ^CentOS 6 Install, local repo, no kickstart
+        APPEND initrd=images/centos/x86_64/6/initrd.img method=http://oga/repos/CentOS/6/os/x86_64/ devfs=nomount ip=dhcp lang=en_US.UTF-8 keymap=us 
+
+LABEL CentOS 6 Install, local repo, no kickstart, VNC
+        KERNEL images/centos/x86_64/6/vmlinuz
+        MENU LABEL ^CentOS 6 Install, local repo, no kickstart, VNC
+        APPEND initrd=images/centos/x86_64/6/initrd.img method=http://oga/repos/CentOS/6/os/x86_64/ devfs=nomount ip=dhcp lang=en_US.UTF-8 keymap=us vnc vncpassword=password
+
+LABEL CentOS 7 Rescue
+        KERNEL images/centos/x86_64/7/vmlinuz
+        MENU LABEL ^CentOS 7 Rescue
+        APPEND initrd=images/centos/x86_64/7/initrd.img ramdisk_size=10000 text rescue ks=http://oga/kickstart/ks_centos_7_rescue.cfg
+
+LABEL CentOS 7 Install, local repo, no kickstart
+        KERNEL images/centos/x86_64/7/vmlinuz
+        MENU LABEL ^CentOS 7 Install, local repo, no kickstart
+        APPEND initrd=images/centos/x86_64/7/initrd.img method=http://oga/repos/CentOS/7/os/x86_64/ devfs=nomount ip=dhcp lang=en_US.UTF-8 keymap=us
+
+LABEL CentOS 7 Install, local repo, no kickstart, VNC
+        KERNEL images/centos/x86_64/7/vmlinuz
+        MENU LABEL ^CentOS 7 Install, local repo, no kickstart, VNC
+        APPEND initrd=images/centos/x86_64/7/initrd.img method=http://oga/repos/CentOS/7/os/x86_64/ devfs=nomount ip=dhcp lang=en_US.UTF-8 keymap=us inst.vnc inst.vncpassword=password
+
+LABEL Intel NUC 01 Install, local repo, kickstart, VNC
+        KERNEL images/centos/x86_64/7/vmlinuz
+        MENU LABEL ^Intel NUC 01 Install, local repo, kickstart, VNC
+        APPEND initrd=images/centos/x86_64/7/initrd.img inst.repo=http://oga/repos/CentOS/7/os/x86_64/ inst.ks=http://oga/kickstart/ks_nuc_01.cfg ip=dhcp inst.vnc inst.vncpassword=password

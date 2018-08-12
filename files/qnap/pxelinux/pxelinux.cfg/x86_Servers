@@ -1,0 +1,22 @@
+MENU TITLE x86 Server Menu
+
+LABEL Main Menu
+        MENU LABEL Main Menu
+        KERNEL menu.c32
+        APPEND pxelinux.cfg/default
+
+LABEL CentOS 6 i386 Rescue
+        KERNEL images/centos/i386/6.9/vmlinuz
+        MENU LABEL ^CentOS 6 Rescue
+        APPEND initrd=images/centos/i386/6/initrd.img ramdisk_size=10000 text rescue ks=http://192.168.0.1/kickstart/ks_centos_6_i386_rescue.cfg
+
+LABEL CentOS 6 Install, local repo, no kickstart
+        KERNEL images/centos/i386/6/vmlinuz
+        MENU LABEL ^CentOS 6 Install, local repo, no kickstart
+        APPEND initrd=images/centos/i386/6/initrd.img method=http://oga/repos/CentOS/6/os/i386/ devfs=nomount ip=dhcp lang=en_US.UTF-8 keymap=us
+
+LABEL CentOS 6 Install, local repo, no kickstart, VNC
+        KERNEL images/centos/i386/6/vmlinuz
+        MENU LABEL ^CentOS 6 Install, local repo, no kickstart, VNC
+        APPEND initrd=images/centos/i386/6/initrd.img method=http://oga/repos/CentOS/6/os/i386/ devfs=nomount ip=dhcp lang=en_US.UTF-8 keymap=us vnc vncpassword=password
+

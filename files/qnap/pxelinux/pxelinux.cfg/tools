@@ -1,0 +1,22 @@
+MENU TITLE Tools Menu
+
+LABEL Main Menu
+        MENU LABEL Main Menu
+        KERNEL menu.c32
+        APPEND pxelinux.cfg/default
+
+LABEL Clonezilla-live
+        MENU LABEL Clonezilla Live
+        KERNEL menu.c32
+        APPEND pxelinux.cfg/clonezilla
+
+LABEL Parted Magic
+        MENU LABEL Parted Magic
+	LINUX memdisk
+	INITRD images/pmagic/pmagic_2017_06_12.iso
+	APPEND iso
+
+label Dos Bootdisk
+        MENU LABEL ^Dos bootdisk
+        kernel memdisk
+        append initrd=images/622c.img
