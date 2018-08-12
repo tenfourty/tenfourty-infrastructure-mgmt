@@ -25,3 +25,7 @@ link_files:
   - ["/share/QDownload/tftp/pxelinux/pxelinux.cfg/x86_Servers", "files/qnap/pxelinux/pxelinux.cfg/x86_Servers"]
   - ["/share/Container/docker-compose.yml", "files/qnap/docker-compose/docker-compose.yml"]
   - ["/share/Container/transmissionDockerEnv", "files/qnap/docker-compose/transmissionDockerEnv"]
+
+files_with_secrets:
+  - ["files/qnap/docker-compose/pi-holeDockerEnvSecrets.j2", "/share/Container/pi-holeDockerEnvSecrets"]
+  - ["files/qnap/docker-compose/transmissionDockerEnvSecrets.j2", "/share/Container/transmissionDockerEnvSecrets"]

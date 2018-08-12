@@ -33,7 +33,11 @@
     force: yes
   loop: "{{ link_files }}"
 
-
+- name: Secrets Files
+  template:
+    src: "{{ item.0 }}"
+    dest: "{{ item.1 }}"
+  loop: "{{ files_with_secrets }}"
 
 #   fail: msg="{{ item.item.path }} is not a link"
 #   when: not item.stat.islnk

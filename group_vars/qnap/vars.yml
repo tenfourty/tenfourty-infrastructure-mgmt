@@ -1,0 +1,5 @@
+---
+pihole_password: "{{ vault_pihole_password }}"
+transmission_password: "{{ vault_transmission_password }}"
+transmission_openvpn_username: "{{ vault_transmission_openvpn_username }}"
+transmission_openvpn_password: "{{ vault_transmission_openvpn_password }}"
