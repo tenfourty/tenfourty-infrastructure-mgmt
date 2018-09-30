@@ -25,6 +25,7 @@ services:
     volumes:
       - /share/Container/container-data/pi-hole/dnsmasq.d:/etc/dnsmasq.d:rw
       - /share/Container/container-data/pi-hole:/etc/pihole:rw
+    dns: 192.168.1.254 
     networks:
       qnet-static:
         ipv4_address: 192.168.1.253
@@ -53,7 +54,8 @@ services:
       - /share/QDownload/transmission/:/data:rw
       - /share/QDownload/transmission/:/downloads:rw
       - /etc/localtime:/etc/localtime:ro
-      - /etc/resolv.conf:/etc/resolv.conf:ro
+#      - /etc/resolv.dnsmasq:/etc/resolv.conf:ro
+    dns: 192.168.1.254
     networks:
       qnet-static:
         ipv4_address: 192.168.1.251
@@ -81,6 +83,7 @@ services:
       - /share/QDownload/transmission/:/downloads:rw
     ports:
       - "5050:5050"
+    dns: 192.168.1.254
     network_mode: "host"
 #    logging:
 #      driver: syslog
@@ -105,7 +108,7 @@ services:
       - /share/QDownload/transmission/:/downloads:rw
  #   ports:
  #     - "7073:8081"
-    dns: 192.168.1.253
+    dns: 192.168.1.254
     networks:
       qnet-static:
         ipv4_address: 192.168.1.252
@@ -131,6 +134,7 @@ services:
       - /share/Container/container-data/plex/config:/config:rw
       - /share/QMultimedia:/data:rw
       - /share/Container/container-data/plex/transcode:/transcode:rw
+    dns: 192.168.1.254
     networks:
       qnet-static:
         ipv4_address: 192.168.1.250
@@ -156,6 +160,6 @@ networks:
       options:
         iface: "bond0"
       config:
-        - subnet: 192.168.1.0/23
+        - subnet: 192.168.1.0/24
           gateway: 192.168.1.254
 
