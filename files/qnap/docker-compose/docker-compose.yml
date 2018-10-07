@@ -6,29 +6,29 @@ services:
 #    networks:
 #      - qnet-dhcp
 
-  pihole:
-    container_name: pihole
-    image: pihole/pihole:latest
-    hostname: pihole
-    restart: always
-    cpu_shares: 512
-    mem_limit: 256m
-    user: 0:0
-    environment:
-      - TZ=Europe/Paris
-      - DNS1=1.1.1.1
-      - DNS2=1.0.0.1
-      - IPv6=false
-      - ServerIP=192.168.1.253
-    env_file:
-      - pi-holeDockerEnvSecrets
-    volumes:
-      - /share/Container/container-data/pi-hole/dnsmasq.d:/etc/dnsmasq.d:rw
-      - /share/Container/container-data/pi-hole:/etc/pihole:rw
-    dns: 192.168.1.254 
-    networks:
-      qnet-static:
-        ipv4_address: 192.168.1.253
+#  pihole:
+#    container_name: pihole
+#    image: pihole/pihole:latest
+#    hostname: pihole
+#    restart: always
+#    cpu_shares: 512
+#    mem_limit: 256m
+#    user: 0:0
+#    environment:
+#      - TZ=Europe/Paris
+#      - DNS1=1.1.1.1
+#      - DNS2=1.0.0.1
+#      - IPv6=false
+#      - ServerIP=192.168.1.253
+#    env_file:
+#      - pi-holeDockerEnvSecrets
+#    volumes:
+#      - /share/Container/container-data/pi-hole/dnsmasq.d:/etc/dnsmasq.d:rw
+#      - /share/Container/container-data/pi-hole:/etc/pihole:rw
+#    dns: 192.168.1.1
+#    networks:
+#      qnet-static:
+#        ipv4_address: 192.168.1.253
 #    logging:
 #      driver: syslog
 #      options:
@@ -55,10 +55,10 @@ services:
       - /share/QDownload/transmission/:/downloads:rw
       - /etc/localtime:/etc/localtime:ro
 #      - /etc/resolv.dnsmasq:/etc/resolv.conf:ro
-    dns: 192.168.1.254
+    dns: 10.10.10.10
     networks:
-      qnet-static:
-        ipv4_address: 192.168.1.251
+      qnet-static-trusted:
+        ipv4_address: 10.10.10.251
 #    network_mode: "host"
 #    logging:
 #      driver: syslog
@@ -69,6 +69,8 @@ services:
 
   couchpotato:
     container_name: couchpotato
+    depends_on:
+      - transmission
     image: linuxserver/couchpotato:latest
     restart: always
     cpu_shares: 1024
@@ -83,7 +85,7 @@ services:
       - /share/QDownload/transmission/:/downloads:rw
     ports:
       - "5050:5050"
-    dns: 192.168.1.254
+    dns: 10.10.10.10
     network_mode: "host"
 #    logging:
 #      driver: syslog
@@ -94,6 +96,8 @@ services:
 
   sickrage:
     container_name: sickrage
+    depends_on:
+      - transmission
     image: linuxserver/sickrage:latest
     restart: always
     cpu_shares: 1024
@@ -108,10 +112,10 @@ services:
       - /share/QDownload/transmission/:/downloads:rw
  #   ports:
  #     - "7073:8081"
-    dns: 192.168.1.254
+    dns: 10.10.10.10
     networks:
-      qnet-static:
-        ipv4_address: 192.168.1.252
+      qnet-static-trusted:
+        ipv4_address: 10.10.10.252
 #    logging:
 #      driver: syslog
 #      options:
@@ -134,10 +138,10 @@ services:
       - /share/Container/container-data/plex/config:/config:rw
       - /share/QMultimedia:/data:rw
       - /share/Container/container-data/plex/transcode:/transcode:rw
-    dns: 192.168.1.254
+    dns: 10.10.10.10
     networks:
-      qnet-static:
-        ipv4_address: 192.168.1.250
+      qnet-static-trusted:
+        ipv4_address: 10.10.10.250
 #    logging:
 #      driver: syslog
 #      options:
@@ -146,20 +150,20 @@ services:
 #        syslog-format: rfc5424micro
 
 networks:
-#  qnet-dhcp:
+#  qnet-dhcp-trusted:
 #    driver: qnet
 #    ipam:
 #      driver: qnet
 #      options:
 #        iface: "bond0"
 
-  qnet-static:
+  qnet-static-trusted:
     driver: qnet
     ipam:
       driver: qnet
       options:
         iface: "bond0"
       config:
-        - subnet: 192.168.1.0/24
-          gateway: 192.168.1.254
+        - subnet: 10.10.10.0/24
+          gateway: 10.10.10.1
 
