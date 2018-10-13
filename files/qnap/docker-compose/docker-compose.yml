@@ -99,6 +99,9 @@ services:
     restart: always
     cpu_shares: 4096
     mem_limit: 3g
+    domainname: tenfourty.com
+    hostname: plex
+    mac_address: 02:42:bf:05:48:f3
     environment:
       - TZ=Europe/Paris
       - PLEX_UID=0
@@ -109,8 +112,9 @@ services:
       - /share/Container/container-data/plex/transcode:/transcode:rw
     dns: 10.10.10.10
     networks:
-      qnet-static:
-        ipv4_address: 10.10.10.250
+      - qnet-dhcp
+#      qnet-static:
+#        ipv4_address: 10.10.10.250
 #    logging:
 #      driver: syslog
 #      options:
@@ -118,67 +122,99 @@ services:
 #        tag: plex
 #        syslog-format: rfc5424micro
 
-  unifi-mongo:
-    image: mongo:3.4
-    dns: 10.10.10.10
-    networks:
-      qnet-static:
-        ipv4_address: 10.10.10.253
-    restart: always
-    volumes:
-      - /share/Container/container-data/unifi/db:/data/db:rw
+#  unifi-mongo:
+#    container_name: unifi-mongo
+#    image: mongo:3.4
+#    cpu_shares: 4096
+#    mem_limit: 2g
+#    domainname: tenfourty.com
+#    hostname: unifi-mongo
+#    dns: 10.10.10.10
+#    networks:
+#      qnet-static:
+#        ipv4_address: 10.10.10.253
+#    restart: always
+#    volumes:
+#      - /share/Container/container-data/unifi/db:/data/db:rw
   
-  unifi-controller:
-    image: "jacobalberty/unifi:latest"
-    depends_on:
-      - unifi-mongo
-    init: true
-    dns: 10.10.10.10
-    networks:
-      qnet-static:
-        ipv4_address: 10.10.10.254
-    restart: always
-    volumes:
-      - /share/Container/container-data/unifi/data:/unifi/data
-      - /share/Container/container-data/unifi/log:/unifi/log
-      - /share/Container/container-data/unifi/cert:/unifi/cert
-      - /share/Container/container-data/unifi/init:/unifi/init.d
-    environment:
-      DB_URI: mongodb://mongo/unifi
-      STATDB_URI: mongodb://mongo/unifi_stat
-      DB_NAME: unifi
-    ports:
-      - "8080:8080"
-      - "8443:8443"
-      - "3478:3478/udp"
-      - "10001:10001/udp"
+#  unifi-controller:
+#    container_name: unifi-controller
+#    image: "jacobalberty/unifi:stable"
+##    depends_on:
+##      - unifi-mongo
+#    init: true
+#    cpu_shares: 4096
+#    mem_limit: 4g
+#    domainname: tenfourty.com
+#    hostname: unifi
+#    dns: 10.10.10.10
+#    networks:
+#      qnet-static:
+#        ipv4_address: 10.10.10.254
+#    restart: always
+#    volumes:
+#      - /share/Container/container-data/unifi-stable:/unifi
+##      - /share/Container/container-data/unifi/data:/unifi/data
+##      - /share/Container/container-data/unifi/log:/unifi/log
+##      - /share/Container/container-data/unifi/cert:/unifi/cert
+##      - /share/Container/container-data/unifi/init:/unifi/init.d
+#      - /share/Container/container-data/unifi-stable/var/run/unifi:/var/run/unifi
+#    environment:
+##      - DB_URI="mongodb://unifi-mongo/unifi"
+##      - STATDB_URI="mongodb://unifi-mongo/unifi_stat"
+##      - DB_NAME=unifi
+#      - RUNAS_UID0=true
+##      - UNIFI_UID=999
+##      - UNIFI_GID=999
+#      - TZ=Europe/Paris
+#      - JVM_MAX_THREAD_STACK_SIZE=1280k
 
-  unifi-logs:
-    image: bash
-    depends_on:
-      - unifi-controller
-    command: bash -c 'tail -f /unifi/log/*'
-    restart: always
-    volumes:
-      - /share/Container/container-data/unifi/log:/unifi/log
+#  unifi-logs:
+#    container_name: unifi-logs
+#    image: bash
+#    depends_on:
+#      - unifi-controller
+#    command: bash -c 'tail -f /unifi/log/*'
+#    restart: always
+#    volumes:
+#      - /share/Container/container-data/unifi-stable/log:/unifi/log
+
+#  unms:
+#    container_name: unms
+#    image: oznu/unms:latest
+#    restart: always
+#    cpu_shares: 4096
+#    mem_limit: 4g
+#    domainname: tenfourty.com
+#    hostname: unms
+#    dns: 10.10.10.10
+#    cap_add:
+#      - NET_ADMIN
+#    networks:
+#      qnet-static:
+#        ipv4_address: 10.10.10.253
+#    environment:
+#      - TZ=Europe/Paris
+#    volumes:
+#      - /share/Container/container-data/unms:/config
 
 networks:
-#  qnet-dhcp:
-#    driver: qnet
-#    ipam:
-#      driver: qnet
-#      options:
-#        iface: "bond0"
-
-  qnet-static:
+  qnet-dhcp:
     driver: qnet
     ipam:
       driver: qnet
       options:
         iface: "bond0"
-      config:
-        - subnet: 10.10.10.0/24
-          gateway: 10.10.10.1
+
+#  qnet-static:
+#    driver: qnet
+#    ipam:
+#      driver: qnet
+#      options:
+#        iface: "bond0"
+#      config:
+#        - subnet: 10.10.10.0/24
+#          gateway: 10.10.10.1
 
 #  unifi:
 #    driver: qnet
