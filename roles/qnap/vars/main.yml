@@ -9,6 +9,7 @@ link_files:
   - ["/root/.bashrc", "files/qnap/dotfiles/.bashrc"]
   - ["/root/.profile", "files/qnap/dotfiles/.profile"]
   - ["/root/.vimrc", "files/qnap/dotfiles/.vimrc"]
+  - ["/root/.gitconfig", "files/qnap/dotfiles/.gitconfig"]
   - ["/share/QDownload/repos/.htaccess", "files/qnap/repos/.htaccess"]
   - ["/share/QDownload/repos/rsyncrepos.sh", "files/qnap/repos/rsyncrepos.sh"]
   - ["/share/QDownload/kickstart/.htaccess", "files/qnap/kickstart/.htaccess"]
