@@ -1,97 +1,80 @@
 version: '2.4'
 services:
-#  qnet_dhcp:
-#    image: alpine
-#    command: ifconfig eth0
-#    networks:
-#      - qnet-dhcp
 
-#  transmission:
-#    container_name: transmission
-#    image: haugene/transmission-openvpn:latest
-#    restart: always
-#    cpu_shares: 512
-#    mem_limit: 256m
-#    cap_add:
-#      - NET_ADMIN
-#    devices:
-#      - "/dev/net/tun"
-#    env_file:
-#      - transmissionDockerEnv
-#      - transmissionDockerEnvSecrets
-#    volumes:
-#      - /share/Container/container-data/transmission/:/config:rw
-#      - /share/QDownload/transmission/:/data:rw
-#      - /share/QDownload/transmission/:/downloads:rw
-#      - /etc/localtime:/etc/localtime:ro
-##      - /etc/resolv.dnsmasq:/etc/resolv.conf:ro
-#    dns: 10.10.10.10
-#    networks:
-#      qnet-static-trusted:
-#        ipv4_address: 10.10.10.251
-#    network_mode: "host"
-#    logging:
-#      driver: syslog
-#      options:
-#        syslog-address: "tcp://192.168.1.1:514"
-#        tag: transmission
-#        syslog-format: rfc5424micro
+  transmission:
+    container_name: transmission
+    image: haugene/transmission-openvpn:latest
+    restart: always
+    cpu_shares: 512
+    mem_limit: 256m
+    domainname: tenfourty.com
+    hostname: transmission
+    mac_address: 72:8E:00:32:D3:49
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - "/dev/net/tun"
+    env_file:
+      - transmissionDockerEnv
+      - transmissionDockerEnvSecrets
+    volumes:
+      - /share/Container/container-data/transmission/:/config:rw
+      - /share/QDownload/transmission/:/data:rw
+      - /share/QDownload/transmission/:/downloads:rw
+      - /etc/localtime:/etc/localtime:ro
+#      - /etc/resolv.dnsmasq:/etc/resolv.conf:ro
+    dns: 10.10.10.10
+    networks:
+      - qnet-dhcp
 
-#  couchpotato:
-#    container_name: couchpotato
-#    depends_on:
-#      - transmission
-#    image: linuxserver/couchpotato:latest
-#    restart: always
-#    cpu_shares: 1024
-#    mem_limit: 256m
-#    environment:
-#      - TZ=Europe/Paris
-#      - PUID=0
-#      - PGID=0
-#    volumes:
-#      - /share/QMultimedia/Video/Movies:/movies:rw
-#      - /share/Container/container-data/couchpotato/:/config:rw
-#      - /share/QDownload/transmission/:/downloads:rw
+  couchpotato:
+    container_name: couchpotato
+    depends_on:
+      - transmission
+    image: linuxserver/couchpotato:latest
+    restart: always
+    cpu_shares: 1024
+    mem_limit: 256m
+    domainname: tenfourty.com
+    hostname: couchpotato
+    mac_address: AA:6D:1B:43:C9:9C
+    environment:
+      - TZ=Europe/Paris
+      - PUID=0
+      - PGID=0
+    volumes:
+      - /share/QMultimedia/Video/Movies:/movies:rw
+      - /share/Container/container-data/couchpotato/:/config:rw
+      - /share/QDownload/transmission/:/downloads:rw
 #    ports:
 #      - "5050:5050"
-#    dns: 10.10.10.10
+    dns: 10.10.10.10
+    networks:
+      - qnet-dhcp
 #    network_mode: "host"
-#    logging:
-#      driver: syslog
-#      options:
-#        syslog-address: "tcp://192.168.1.1:514"
-#        tag: couchpotato
-#        syslog-format: rfc5424micro
 
-#  sickrage:
-#    container_name: sickrage
-#    depends_on:
-#      - transmission
-#    image: linuxserver/sickrage:latest
-#    restart: always
-#    cpu_shares: 1024
-#    mem_limit: 256m
-#    environment:
-#      - TZ=Europe/Paris
-#      - PUID=0
-#      - PGID=0
-#    volumes:
-#      - /share/QMultimedia/Video/TV:/tv:rw
-#      - /share/Container/container-data/sickrage/:/config:rw
-#      - /share/QDownload/transmission/:/downloads:rw
- #   ports:
- #     - "7073:8081"
-#    dns: 10.10.10.10
-#    networks:
-#      qnet-static-trusted:
-#        ipv4_address: 10.10.10.252
-#    logging:
-#      driver: syslog
-#      options:
-#        syslog-address: "tcp://192.168.1.1:514"
-#        tag: sickrage
-#        syslog-format: rfc5424micro
+  sickchill:
+    container_name: sickchill
+    depends_on:
+      - transmission
+    image: linuxserver/sickrage:latest
+    restart: always
+    cpu_shares: 1024
+    mem_limit: 256m
+    domainname: tenfourty.com
+    hostname: sickchill
+    mac_address: 56:CE:D9:89:80:B8
+    environment:
+      - TZ=Europe/Paris
+      - PUID=0
+      - PGID=0
+    volumes:
+      - /share/QMultimedia/Video/TV:/tv:rw
+      - /share/Container/container-data/sickrage/:/config:rw
+      - /share/QDownload/transmission/:/downloads:rw
+    dns: 10.10.10.10
+    networks:
+      - qnet-dhcp
 
   plex:
     container_name: plex
@@ -113,14 +96,6 @@ services:
     dns: 10.10.10.10
     networks:
       - qnet-dhcp
-#      qnet-static:
-#        ipv4_address: 10.10.10.250
-#    logging:
-#      driver: syslog
-#      options:
-#        syslog-address: "tcp://192.168.1.1:514"
-#        tag: plex
-#        syslog-format: rfc5424micro
 
 #  unifi-mongo:
 #    container_name: unifi-mongo
@@ -222,3 +197,11 @@ networks:
 #      driver: qnet
 #      options:
 #        iface: "bond0"
+
+
+#    logging:
+#      driver: syslog
+#      options:
+#        syslog-address: "tcp://192.168.1.1:514"
+#        tag: couchpotato
+#        syslog-format: rfc5424micro
