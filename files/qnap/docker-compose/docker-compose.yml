@@ -22,7 +22,32 @@ services:
       - /share/QDownload/transmission/:/data:rw
       - /share/QDownload/transmission/:/downloads:rw
       - /etc/localtime:/etc/localtime:ro
-#      - /etc/resolv.dnsmasq:/etc/resolv.conf:ro
+    dns: 10.10.10.10
+    networks:
+      - qnet-dhcp
+
+  sabnzbd:
+    container_name: sabnzbd
+    image: linuxserver/sabnzbd:latest
+    restart: always
+    cpu_shares: 512
+    mem_limit: 256m
+    domainname: tenfourty.com
+    hostname: sabnzbd
+    mac_address: 1E:24:9F:B1:6C:3B
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - "/dev/net/tun"
+    environment:
+      - TZ=Europe/Paris
+      - PUID=0 
+      - PGID=0
+    volumes:
+      - /share/Container/container-data/sabnzbd:/config:rw
+      - /share/QDownload/sabnzbd/incomplete-downloads:/incomplete-downloads:rw
+      - /share/QDownload/transmission/:/downloads:rw
+      - /etc/localtime:/etc/localtime:ro
     dns: 10.10.10.10
     networks:
       - qnet-dhcp
@@ -31,6 +56,7 @@ services:
     container_name: couchpotato
     depends_on:
       - transmission
+      - sabnzbd
     image: linuxserver/couchpotato:latest
     restart: always
     cpu_shares: 1024
@@ -57,6 +83,7 @@ services:
     container_name: sickchill
     depends_on:
       - transmission
+      - sabnzbd
     image: linuxserver/sickrage:latest
     restart: always
     cpu_shares: 1024
