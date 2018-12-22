@@ -1,3 +1,4 @@
+#!/bin/sh
 # autorun.sh
 
 # Simple script to run one or more files on startup.

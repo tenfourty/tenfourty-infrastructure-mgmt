@@ -1,15 +1,15 @@
 ---
 infra_repo: "https://github.com/tenfourty/tenfourty-infrastructure-mgmt.git"
 infra_repo_accept_hostkey: no
-infra_repo_local_destination: "/root/tenfourty-infrastructure-mgmt"
+infra_repo_local_destination: "/share/homes/admin/tenfourty-infrastructure-mgmt"
 
 link_files:
-  - ["/root/.bash_logout", "files/qnap/dotfiles/.bash_logout"]
-  - ["/root/.bash_profile", "files/qnap/dotfiles/.bash_profile"]
-  - ["/root/.bashrc", "files/qnap/dotfiles/.bashrc"]
-  - ["/root/.profile", "files/qnap/dotfiles/.profile"]
-  - ["/root/.vimrc", "files/qnap/dotfiles/.vimrc"]
-  - ["/root/.gitconfig", "files/qnap/dotfiles/.gitconfig"]
+  #- ["/root/.bash_logout", "files/qnap/dotfiles/.bash_logout"]
+  #- ["/root/.bash_profile", "files/qnap/dotfiles/.bash_profile"]
+  #- ["/root/.bashrc", "files/qnap/dotfiles/.bashrc"]
+  #- ["/root/.profile", "files/qnap/dotfiles/.profile"]
+  #- ["/root/.vimrc", "files/qnap/dotfiles/.vimrc"]
+  #- ["/root/.gitconfig", "files/qnap/dotfiles/.gitconfig"]
   # - ["/share/QDownload/repos/.htaccess", "files/qnap/repos/.htaccess"]
   # - ["/share/QDownload/repos/rsyncrepos.sh", "files/qnap/repos/rsyncrepos.sh"]
   # - ["/share/QDownload/kickstart/.htaccess", "files/qnap/kickstart/.htaccess"]

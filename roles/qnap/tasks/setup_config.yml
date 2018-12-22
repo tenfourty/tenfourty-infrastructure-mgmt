@@ -7,7 +7,7 @@
     accept_hostkey: "{{ infra_repo_accept_hostkey }}"
   become: no
 
-- name: Getting file info on tenfourty_infra_dotfiles
+- name: Getting file info on the files we want to link to this repo
   stat:
     path: "{{ item.0 }}"
   loop: "{{ link_files }}"
