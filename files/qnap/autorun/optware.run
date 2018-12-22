@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# script to update opkg
+
+echo "updating Optware"
+opkg update
+
+echo "upgrading Optware"
+opkg upgrade
+
+
