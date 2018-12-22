@@ -7,6 +7,11 @@
     accept_hostkey: "{{ infra_repo_accept_hostkey }}"
   become: no
 
+- name: Run the script to install the autorun.sh script
+  shell: "{{ infra_repo_local_destination|quote }}/files/qnap/autorun/installautorun.sh"
+  args:
+    chdir: "{{ infra_repo_local_destination }}/files/qnap/autorun/"
+
 - name: Getting file info on the files we want to link to this repo
   stat:
     path: "{{ item.0 }}"

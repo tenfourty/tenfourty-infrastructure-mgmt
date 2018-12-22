@@ -28,5 +28,4 @@ link_files:
   - ["/share/Container/transmissionDockerEnv", "files/qnap/docker-compose/transmissionDockerEnv"]
 
 files_with_secrets:
-  - ["files/qnap/docker-compose/pi-holeDockerEnvSecrets.j2", "/share/Container/pi-holeDockerEnvSecrets"]
   - ["files/qnap/docker-compose/transmissionDockerEnvSecrets.j2", "/share/Container/transmissionDockerEnvSecrets"]

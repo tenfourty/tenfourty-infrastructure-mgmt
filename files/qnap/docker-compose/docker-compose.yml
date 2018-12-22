@@ -124,81 +124,6 @@ services:
     networks:
       - qnet-dhcp
 
-#  unifi-mongo:
-#    container_name: unifi-mongo
-#    image: mongo:3.4
-#    cpu_shares: 4096
-#    mem_limit: 2g
-#    domainname: tenfourty.com
-#    hostname: unifi-mongo
-#    dns: 10.10.10.10
-#    networks:
-#      qnet-static:
-#        ipv4_address: 10.10.10.253
-#    restart: always
-#    volumes:
-#      - /share/Container/container-data/unifi/db:/data/db:rw
-  
-#  unifi-controller:
-#    container_name: unifi-controller
-#    image: "jacobalberty/unifi:stable"
-##    depends_on:
-##      - unifi-mongo
-#    init: true
-#    cpu_shares: 4096
-#    mem_limit: 4g
-#    domainname: tenfourty.com
-#    hostname: unifi
-#    dns: 10.10.10.10
-#    networks:
-#      qnet-static:
-#        ipv4_address: 10.10.10.254
-#    restart: always
-#    volumes:
-#      - /share/Container/container-data/unifi-stable:/unifi
-##      - /share/Container/container-data/unifi/data:/unifi/data
-##      - /share/Container/container-data/unifi/log:/unifi/log
-##      - /share/Container/container-data/unifi/cert:/unifi/cert
-##      - /share/Container/container-data/unifi/init:/unifi/init.d
-#      - /share/Container/container-data/unifi-stable/var/run/unifi:/var/run/unifi
-#    environment:
-##      - DB_URI="mongodb://unifi-mongo/unifi"
-##      - STATDB_URI="mongodb://unifi-mongo/unifi_stat"
-##      - DB_NAME=unifi
-#      - RUNAS_UID0=true
-##      - UNIFI_UID=999
-##      - UNIFI_GID=999
-#      - TZ=Europe/Paris
-#      - JVM_MAX_THREAD_STACK_SIZE=1280k
-
-#  unifi-logs:
-#    container_name: unifi-logs
-#    image: bash
-#    depends_on:
-#      - unifi-controller
-#    command: bash -c 'tail -f /unifi/log/*'
-#    restart: always
-#    volumes:
-#      - /share/Container/container-data/unifi-stable/log:/unifi/log
-
-#  unms:
-#    container_name: unms
-#    image: oznu/unms:latest
-#    restart: always
-#    cpu_shares: 4096
-#    mem_limit: 4g
-#    domainname: tenfourty.com
-#    hostname: unms
-#    dns: 10.10.10.10
-#    cap_add:
-#      - NET_ADMIN
-#    networks:
-#      qnet-static:
-#        ipv4_address: 10.10.10.253
-#    environment:
-#      - TZ=Europe/Paris
-#    volumes:
-#      - /share/Container/container-data/unms:/config
 
 networks:
   qnet-dhcp:
@@ -217,14 +142,6 @@ networks:
 #      config:
 #        - subnet: 10.10.10.0/24
 #          gateway: 10.10.10.1
-
-#  unifi:
-#    driver: qnet
-#    ipam:
-#      driver: qnet
-#      options:
-#        iface: "bond0"
-
 
 #    logging:
 #      driver: syslog
