@@ -2,4 +2,4 @@
 
 DOTFILESDIR=/share/homes/admin/tenfourty-infrastructure-mgmt/files/qnap/dotfiles
 
-for i in `ls ${DOTFILESDIR}/.*`; do echo "linking /root/$i to $DOTFILESDIR/$i"; (ln -s $DOTFILESDIR/$i /root/$i) ; done
+for i in `ls -A ${DOTFILESDIR}/ | egrep '^\.'`; do echo "linking /root/$i to $DOTFILESDIR/$i"; (ln -s $DOTFILESDIR/$i /root/$i) ; done
