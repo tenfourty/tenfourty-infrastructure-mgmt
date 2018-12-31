@@ -19,7 +19,7 @@ size=$(xdpyinfo | grep dimensions | awk '{print $2}')
 #collection=151521 #undisturbed-pattern-wallpapers
 collection=1339090 #4k wallpapers
 
-wallpaperpath=/home/tenfourty/Pictures/wallpaper.jpg
+wallpaperpath=~/Pictures/wallpaper.jpg
 
 wget -O $wallpaperpath https://source.unsplash.com/collection/$collection/$size
 gsettings set org.gnome.desktop.background picture-uri file://$wallpaperpath
