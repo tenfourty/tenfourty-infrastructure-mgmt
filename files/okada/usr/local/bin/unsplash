@@ -1,0 +1,25 @@
+#/bin/bash
+
+# todo
+# - cache based on image name and resolution
+# - cache management - size
+# - support for multiple monitors
+# - support for multiple collections
+
+#check if internet is working
+wget -q --spider http://google.com
+if [ $? -eq 0 ]; then
+	echo internetIsUp
+else
+	exit 1
+fi
+
+size=$(xdpyinfo | grep dimensions | awk '{print $2}')
+
+#collection=151521 #undisturbed-pattern-wallpapers
+collection=1339090 #4k wallpapers
+
+wallpaperpath=/home/tenfourty/Pictures/wallpaper.jpg
+
+wget -O $wallpaperpath https://source.unsplash.com/collection/$collection/$size
+gsettings set org.gnome.desktop.background picture-uri file://$wallpaperpath

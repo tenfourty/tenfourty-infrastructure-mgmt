@@ -1,0 +1,14 @@
+#!/bin/bash
+
+SERVER=er
+
+ping -c 3 $SERVER > /dev/null 2>&1
+if [ $? -ne 0 ]
+then
+   # connect to the vpn
+   echo "Phoning home..."
+   nmcli con up phonehome
+else
+   echo "You are home!"
+fi
+

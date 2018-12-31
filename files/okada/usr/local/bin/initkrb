@@ -1,0 +1,36 @@
+#!/bin/bash
+
+if klist -s
+then
+   printf "Kerberos token is valid...\n\n"
+
+   # list kerberos tokens
+   klist
+
+   # exit successfully
+   exit 0
+fi
+
+if [[ `nmcli con show Amsterdam\ \(AMS2\) | grep GENERAL.STATE` =~ .*activated* ]]
+then
+   printf "Red Hat VPN connected\n\n"
+
+   printf "Initialising Kerberos token ...\n\n"
+
+   # init my Private dir
+   /usr/local/bin/initprivate
+
+   # connect to 1Password cli
+   export OP_SESSION_tenfourty=`cat ~/Private/.key | op signin --output=raw`
+
+   # initialise a kerberos token
+   op get item 37vypl546fbg5mqpjdkrwdtrc4 | jq --raw-output '.details.fields[] | select(.designation=="password").value' | kinit jebrown@REDHAT.COM
+
+   # list kerberos tokens
+   klist
+else
+   # we need to be on the VPN to init a token, exit with an error
+   printf "Red Hat VPN not connected ... exiting\n"
+   exit 1
+fi
+

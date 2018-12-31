@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# sign in to 1password
+if [ ! op get account &> /dev/null ]
+  then
+  ecryptfs-mount-private
+  eval $(cat ~/Private/.key | op signin)
+#  cat ~/.Private/.key | export OP_SESSION_tenfourty=`op signin --output=raw`
+fi
+
