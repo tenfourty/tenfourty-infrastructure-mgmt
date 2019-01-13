@@ -1,3 +1,5 @@
 [user]
 	email = jeremy@tenfourty.com
 	name = Jeremy Brown
+[credential]
+	helper = cache --timeout=3600
