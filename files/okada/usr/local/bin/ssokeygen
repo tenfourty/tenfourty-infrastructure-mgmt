@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# sign in to 1password
+#eval $(op signin)
+# sign in to 1password
+#if [ ! op get account &> /dev/null ]
+#  then
+  keyctl link @u @s
+  ecryptfs-mount-private
+#  eval $(cat ~/Private/.key | op signin)
+  export OP_SESSION_tenfourty=`cat ~/Private/.key | op signin --output=raw`
+#fi
+
+#echo `op get item yjafcrsx5nd5hn7unzc3e4umoq | jq --raw-output '.details.fields[] | select(.designation=="password").value'``op get totp yjafcrsx5nd5hn7unzc3e4umoq`
+
+echo `op get item yjafcrsx5nd5hn7unzc3e4umoq | jq --raw-output '.details.fields[] | select(.designation=="password").value'``op get totp yjafcrsx5nd5hn7unzc3e4umoq` | xclip -selection c

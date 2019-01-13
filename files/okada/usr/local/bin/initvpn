@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [[ `nmcli con show Amsterdam\ \(AMS2\) | grep GENERAL.STATE` =~ .*activated* ]]
+then
+   echo "Red Hat VPN already connected"
+   exit 0
+fi
+
+echo "Connecting to Red Hat VPN ..."
+
+# init my Private dir
+/usr/local/bin/initprivate
+
+# connect to 1Password CLI
+export OP_SESSION_tenfourty=`cat ~/Private/.key | op signin --output=raw`
+
+# connect to the vpn
+nmcli con up Amsterdam\ \(AMS2\) --ask <<< "$(echo `op get item yjafcrsx5nd5hn7unzc3e4umoq | jq --raw-output '.details.fields[] | select(.designation=="password").value'``op get totp yjafcrsx5nd5hn7unzc3e4umoq`)"
+
