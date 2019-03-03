@@ -9,11 +9,68 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --schedule "0 0 6 * * *" --cleanup
     env_file:
-      - watchtowerDockerEnvSecrets
+      - ./qnapdockerfiles/watchtower/secrets.env
     environment:
       - WATCHTOWER_NOTIFICATIONS_LEVEL=info
       - WATCHTOWER_NOTIFICATIONS=slack
       - WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-qnap
+
+# docker run -v /var/run/docker.sock:/var/run/docker.sock -d --restart=always --name docker-sock-proxy docksal/socat
+  dockersocket:
+    container_name: dockersocket
+    restart: always
+#    image: tecnativa/docker-socket-proxy
+    image: docksal/socat
+    depends_on:
+      - watchtower
+    privileged: true
+    networks:
+      - private
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+#    environment:
+#      - CONTAINERS=1
+#      - NETWORKS=1
+#      - SERVICES=1
+#      - SWARM=1
+#      - TASKS=1
+
+  traefik:
+    hostname: traefik
+    image: traefik:latest
+    container_name: traefik
+    restart: always
+    depends_on:
+      - watchtower
+      - dockersocket
+    domainname: home.${DOMAINNAME}
+    networks:
+      - private
+      - traefik_proxy
+    ports:
+      - 80:80
+      - 443:443
+      - 8480:8080
+    env_file:
+      - ./qnapdockerfiles/traefik/secrets.env
+    volumes:
+      - /share/Container/container-data/traefik:/etc/traefik
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=traefik"
+      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefixStrip: /traefik"
+      - "traefik.port=8080"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+#      - "traefik.frontend.headers.frameDeny=true"
+      - "traefik.frontend.auth.basic.usersFile=/etc/traefik/.htpasswd"
 
   mariadb:
     image: "linuxserver/mariadb"
@@ -30,11 +87,13 @@ services:
         mode: host
     restart: always
     env_file:
-      - mariadbDockerEnvSecrets
+      - ./qnapdockerfiles/mariadb/secrets.env
     environment:
       - PUID=0
       - PGID=0
       - TZ=Europe/Paris
+    networks:
+      - mariadb
 
 # WebUI for MariaDB
   phpmyadmin:
@@ -43,39 +102,130 @@ services:
     depends_on:
       - watchtower
       - mariadb
+      - traefik
     restart: always
-#    links:
-#      - mariadb:mariadb
     ports:
       - 8280:80
-#    env_file:
-#      - mariadbDockerEnvSecrets
     environment:
       - PMA_HOST=oga2
     hostname: phpmyadmin
-    domainname: tenfourty.com
+    domainname: ${DOMAINNAME}
 
 # NextCloud Your Own Cloud Storage
-  nextcloud:
-    container_name: nextcloud
+
+  nextcloud_redis:
+    image: redis:alpine
+    container_name: nextcloud_redis
     restart: always
-    image: nextcloud
+    depends_on:
+      - watchtower
+    networks:
+      - nextcloud_app
+
+  nextcloud_app:
+    build: ./qnapdockerfiles/nextcloud/app
+    container_name: nextcloud_app
+    restart: always
     depends_on:
       - watchtower
       - mariadb
-    links:
-      - mariadb:mariadb
+      - nextcloud_redis
     volumes:
-      - /share/NextCloud/:/var/www/html
+      - /share/NextCloud:/var/www/html
     environment:
       - PUID=0
       - PGID=0
-    hostname: nextcloud
-    domainname: tenfourty.com
-    mac_address: 8E:A5:C8:01:E6:FD
-    dns: 10.10.10.10
     networks:
-      - qnet-dhcp
+      - nextcloud_app
+      - mariadb
+
+  nextcloud_web:
+    build: ./qnapdockerfiles/nextcloud/web
+    container_name: nextcloud_web
+    restart: always
+    depends_on:
+      - watchtower
+      - mariadb
+      - nextcloud_app
+      - traefik
+    expose:
+      - 80
+    links:
+      - nextcloud_app
+    volumes:
+      - /share/NextCloud:/var/www/html:ro
+    networks:
+      - nextcloud_app
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=nextcloud_web"
+      - "traefik.frontend.rule=Host:nextcloud.${DOMAINNAME}"
+      - "traefik.port=80"
+      - "traefik.protocol=https"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+#     - "traefik.frontend.headers.frameDeny=true"
+      - "traefik.frontend.passHostHeader=true"
+
+  nextcloud_cron:
+    build: ./qnapdockerfiles/nextcloud/app
+    container_name: nextcloud_cron
+    restart: always
+    volumes:
+      - /share/NextCloud:/var/www/html
+    entrypoint: /cron.sh
+    depends_on:
+      - watchtower
+      - mariadb
+      - nextcloud_redis
+
+#  nextcloud:
+#    container_name: nextcloud
+#    restart: always
+#    image: nextcloud
+#    depends_on:
+#      - watchtower
+#      - mariadb
+#      - traefik
+#    links:
+#      - mariadb:mariadb
+#    volumes:
+#      - /share/NextCloud/:/var/www/html
+#    environment:
+#      - PUID=0
+#      - PGID=0
+##    hostname: nextcloud
+##    domainname: ${DOMAINNAME}
+##    mac_address: 8E:A5:C8:01:E6:FD
+##    dns: ${LOCALDNS}
+#    ports:
+#      - 9190:443
+#    networks:
+#      - qnet-dhcp
+#      - traefik_proxy
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.backend=nextcloud"
+#      - "traefik.frontend.rule=Host:nextcloud.${DOMAINNAME}"
+#      - "traefik.port=443"
+#      - "traefik.protocol=https"
+#      - "traefik.docker.network=traefik_proxy"
+#      - "traefik.frontend.headers.SSLRedirect=true"
+#      - "traefik.frontend.headers.STSSeconds=315360000"
+#      - "traefik.frontend.headers.browserXSSFilter=true"
+#      - "traefik.frontend.headers.contentTypeNosniff=true"
+#      - "traefik.frontend.headers.forceSTSHeader=true"
+#      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+#      - "traefik.frontend.headers.STSPreload=true"
+# #     - "traefik.frontend.headers.frameDeny=true"
+#      - "traefik.frontend.passHostHeader=true"
 
   transmission:
     container_name: transmission
@@ -83,26 +233,39 @@ services:
     restart: always
     depends_on:
       - watchtower
-#    cpu_shares: 512
-#    mem_limit: 256m
-    domainname: tenfourty.com
-    hostname: transmission
-    mac_address: 72:8E:00:32:D3:49
+      - traefik
+#    domainname: ${DOMAINNAME}
+#    hostname: transmission
+#    mac_address: 72:8E:00:32:D3:49
     cap_add:
       - NET_ADMIN
     devices:
       - "/dev/net/tun"
     env_file:
-      - transmissionDockerEnv
-      - transmissionDockerEnvSecrets
+      - ./qnapdockerfiles/transmission/config.env
+      - ./qnapdockerfiles/transmission/secrets.env
     volumes:
       - /share/Container/container-data/transmission/:/config:rw
       - /share/QDownload/transmission/:/data:rw
       - /share/QDownload/transmission/:/downloads:rw
       - /etc/localtime:/etc/localtime:ro
-    dns: 10.10.10.10
+#    dns: ${LOCALDNS}
     networks:
-      - qnet-dhcp
+#      - qnet-dhcp
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=transmission-vpn"
+      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /transmission"
+      - "traefik.port=9091"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
 
   sabnzbd:
     container_name: sabnzbd
@@ -110,15 +273,10 @@ services:
     restart: always
     depends_on:
       - watchtower
-#    cpu_shares: 1024
-#    mem_limit: 2048m
-    domainname: tenfourty.com
-    hostname: sabnzbd
-    mac_address: 1E:24:9F:B1:6C:3B
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - "/dev/net/tun"
+      - traefik
+    ports:
+       - 8380:8080
+#       - 9390:9090
     environment:
       - TZ=Europe/Paris
       - PUID=0 
@@ -127,9 +285,24 @@ services:
       - /share/Container/container-data/sabnzbd:/config:rw
       - /share/QDownload/sabnzbd/incomplete-downloads:/incomplete-downloads:rw
       - /share/QDownload/transmission/completed:/downloads:rw
-    dns: 10.10.10.10
     networks:
-      - qnet-dhcp
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=sabnzbd"
+      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /sabnzbd"
+      - "traefik.port=8080"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.headers.frameDeny=true"
+      - "traefik.frontend.passHostHeader=true"
+      - "traefik.frontend.whiteList.sourceRange=${LOCALNETWORKS}"
 
   couchpotato:
     container_name: couchpotato
@@ -137,13 +310,9 @@ services:
     restart: always
     depends_on:
       - watchtower
+      - traefik
       - transmission
       - sabnzbd
-#    cpu_shares: 1024
-#    mem_limit: 256m
-    domainname: tenfourty.com
-    hostname: couchpotato
-    mac_address: AA:6D:1B:43:C9:9C
     environment:
       - TZ=Europe/Paris
       - PUID=0
@@ -152,12 +321,25 @@ services:
       - /share/QMultimedia/Video/Movies:/movies:rw
       - /share/Container/container-data/couchpotato/:/config:rw
       - /share/QDownload/transmission/:/downloads:rw
-#    ports:
-#      - "5050:5050"
-    dns: 10.10.10.10
+    ports:
+      - 5050:5050
     networks:
-      - qnet-dhcp
-#    network_mode: "host"
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=couchpotato"
+      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /couchpotato"
+      - "traefik.port=5050"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.passHostHeader=true"
+      - "traefik.frontend.whiteList.sourceRange=${LOCALNETWORKS}"
 
   sickchill:
     container_name: sickchill
@@ -165,13 +347,11 @@ services:
     restart: always
     depends_on:
       - watchtower
+      - traefik
       - transmission
       - sabnzbd
-#    cpu_shares: 1024
-#    mem_limit: 256m
-    domainname: tenfourty.com
-    hostname: sickchill
-    mac_address: 56:CE:D9:89:80:B8
+    ports:
+      - 8481:8081
     environment:
       - TZ=Europe/Paris
       - PUID=0
@@ -180,9 +360,23 @@ services:
       - /share/QMultimedia/Video/TV:/tv:rw
       - /share/Container/container-data/sickrage/:/config:rw
       - /share/QDownload/transmission/:/downloads:rw
-    dns: 10.10.10.10
     networks:
-      - qnet-dhcp
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=sickchill"
+      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /sickchill"
+      - "traefik.port=8081"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.passHostHeader=true"
+      - "traefik.frontend.whiteList.sourceRange=${LOCALNETWORKS}"
 
   plex:
     container_name: plex
@@ -190,25 +384,44 @@ services:
     restart: always
     depends_on:
       - watchtower
-#    cpu_shares: 4096
-#    mem_limit: 3g
-    domainname: tenfourty.com
-    hostname: plex
-    mac_address: 02:42:bf:05:48:f3
+      - traefik
+    ports:
+      - 32400:32400/tcp
+      - 3005:3005/tcp
+      - 8324:8324/tcp
+      - 32469:32469/tcp
+      - 1901:1900/udp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32414:32414/udp
     environment:
       - TZ=Europe/Paris
       - PLEX_UID=0
       - PLEX_GID=0
+      - ADVERTISE_IP=https://plex.tenfourty.com:443/
     volumes:
       - /share/Container/container-data/plex/config:/config:rw
       - /share/QMultimedia:/data:rw
       - /share/Container/container-data/plex/transcode:/transcode:rw
-    dns: 10.10.10.10
     networks:
-      - qnet-dhcp
-    #devices:
-    #  - /dev/dri:/dev/dri
-    #privileged: true
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=plex"
+      - "traefik.frontend.rule=Host:plex.tenfourty.com"
+      - "traefik.port=32400"
+#      - "traefik.protocol=http"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+#      - "traefik.frontend.headers.STSSeconds=315360000"
+#      - "traefik.frontend.headers.browserXSSFilter=true"
+#      - "traefik.frontend.headers.contentTypeNosniff=true"
+#      - "traefik.frontend.headers.forceSTSHeader=true"
+#      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+#      - "traefik.frontend.headers.STSPreload=true"
+#      - "traefik.frontend.headers.frameDeny=true"
+#      - "traefik.frontend.passHostHeader=true"
+
 
   tautulli:
     container_name: tautulli
@@ -216,15 +429,33 @@ services:
     restart: always
     depends_on:
       - watchtower
+      - traefik
+      - plex
     volumes:
       - /share/Container/container-data/tautulli/config:/config
       - /share/Container/container-data/tautulli/logs:/logs:ro
     ports:
-      - "8281:8181"
+      - 8281:8181
     environment:
       - PUID=0
       - PGID=0
       - TZ=Europe/Paris
+    networks:
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=tautulli"
+      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /tautulli"
+      - "traefik.port=8181"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.passHostHeader=true"
 
   ombi:
     container_name: ombi
@@ -232,15 +463,34 @@ services:
     restart: always
     depends_on:
       - watchtower
+      - traefik
       - plex
+      - sickchill
+      - couchpotato
     volumes:
       - /share/Container/container-data/ombi:/config
     ports:
-      - "3579:3579"
+      - 3579:3579
     environment:
       - PUID=0
       - PGID=0
-      - TZ=Europe/Paris 
+      - TZ=Europe/Paris
+    networks:
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=ombi"
+      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /ombi"
+      - "traefik.port=3579"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.passHostHeader=true"
 
   organizr:
     container_name: organizr
@@ -248,9 +498,10 @@ services:
     restart: always
     depends_on:
       - watchtower
+      - traefik
       - mariadb
       - phpmyadmin
-      - nextcloud
+#      - nextcloud
       - couchpotato
       - sickchill
       - transmission
@@ -261,43 +512,54 @@ services:
     volumes:
       - /share/Container/container-data/organizr:/config
     ports:
-      - "8282:80"
+      - 8282:80
     environment:
       - PUID=1001
       - PGID=100
       - TZ=Europe/Paris
+    networks:
+      - traefik_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=organizr"
+      - "traefik.frontend.rule=Host:home.${DOMAINNAME}"  
+      - "traefik.port=80"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.headers.frameDeny=true"
 
 # https://qnap-dev.github.io/container-station-api/index.html
 networks:
-  qnet-dhcp:
-    external:
-      name: qnet-dhcp
+
 # docker network create -d qnet --ipam-driver=qnet --ipam-opt=iface=bond0 qnet-dhcp
-
-
 #  qnet-dhcp:
-#    driver: qnet
-#    ipam:
-#      driver: qnet
-#      options:
-#        iface: "bond0"
-#      config:
-#        - subnet: 10.10.10.0/24
-#        - iface: "bond0"
+#    external:
+#      name: qnet-dhcp
 
-#  qnet-static:
-#    driver: qnet
-#    ipam:
-#      driver: qnet
-#      options:
-#        iface: "bond0"
-#      config:
-#        - subnet: 10.10.10.0/24
-#          gateway: 10.10.10.1
+  private:
+    external: true
+    driver_opts:
+      encrypted: 1
 
-#    logging:
-#      driver: syslog
-#      options:
-#        syslog-address: "tcp://192.168.1.1:514"
-#        tag: couchpotato
-#        syslog-format: rfc5424micro
+  mariadb:
+    external: true
+    driver_opts:
+      encrypted: 1
+
+  nextcloud_app:
+    external: true
+    driver_opts:
+      encrypted: 1
+
+# docker network create traefik_proxy
+  traefik_proxy:
+    external: true
+    driver_opts:
+      encrypted: 1
+
