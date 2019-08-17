@@ -13,8 +13,6 @@ fi
 
 if [[ `nmcli con show Amsterdam\ \(AMS2\) | grep GENERAL.STATE` =~ .*activated* ]]
 then
-   printf "Red Hat VPN connected\n\n"
-
    printf "Initialising Kerberos token ...\n\n"
 
    # init my Private dir

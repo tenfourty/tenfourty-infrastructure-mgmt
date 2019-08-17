@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# init my Private dir
+/usr/local/bin/initprivate
+
+# init Red Hat VPN
+/usr/local/bin/initvpn
+
+# init kerberos
+/usr/local/bin/initkrb
+
