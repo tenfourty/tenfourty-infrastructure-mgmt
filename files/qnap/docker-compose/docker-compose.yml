@@ -1,12 +1,90 @@
-version: '2.4'
+version: '3.4'
 services:
+
+  watchtower:
+    container_name: watchtower
+    restart: always
+    image: v2tec/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --schedule "0 0 6 * * *" --cleanup
+    env_file:
+      - watchtowerDockerEnvSecrets
+    environment:
+      - WATCHTOWER_NOTIFICATIONS_LEVEL=info
+      - WATCHTOWER_NOTIFICATIONS=slack
+      - WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-qnap
+
+  mariadb:
+    image: "linuxserver/mariadb"
+    container_name: "mariadb"
+    depends_on:
+      - watchtower
+    hostname: mariadb
+    volumes:
+        - /share/Container/container-data/mariadb:/config
+    ports:
+      - target: 3306
+        published: 3306
+        protocol: tcp
+        mode: host
+    restart: always
+    env_file:
+      - mariadbDockerEnvSecrets
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Europe/Paris
+
+# WebUI for MariaDB
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin/phpmyadmin
+    depends_on:
+      - watchtower
+      - mariadb
+    restart: always
+#    links:
+#      - mariadb:mariadb
+    ports:
+      - 8280:80
+#    env_file:
+#      - mariadbDockerEnvSecrets
+    environment:
+      - PMA_HOST=oga2
+    hostname: phpmyadmin
+    domainname: tenfourty.com
+
+# NextCloud Your Own Cloud Storage
+  nextcloud:
+    container_name: nextcloud
+    restart: always
+    image: nextcloud
+    depends_on:
+      - watchtower
+      - mariadb
+    links:
+      - mariadb:mariadb
+    volumes:
+      - /share/NextCloud/:/var/www/html
+    environment:
+      - PUID=0
+      - PGID=0
+    hostname: nextcloud
+    domainname: tenfourty.com
+    mac_address: 8E:A5:C8:01:E6:FD
+    dns: 10.10.10.10
+    networks:
+      - qnet-dhcp
 
   transmission:
     container_name: transmission
     image: haugene/transmission-openvpn:latest
     restart: always
-    cpu_shares: 512
-    mem_limit: 256m
+    depends_on:
+      - watchtower
+#    cpu_shares: 512
+#    mem_limit: 256m
     domainname: tenfourty.com
     hostname: transmission
     mac_address: 72:8E:00:32:D3:49
@@ -30,8 +108,10 @@ services:
     container_name: sabnzbd
     image: linuxserver/sabnzbd:latest
     restart: always
-    cpu_shares: 1024
-    mem_limit: 1024m
+    depends_on:
+      - watchtower
+#    cpu_shares: 1024
+#    mem_limit: 2048m
     domainname: tenfourty.com
     hostname: sabnzbd
     mac_address: 1E:24:9F:B1:6C:3B
@@ -46,21 +126,21 @@ services:
     volumes:
       - /share/Container/container-data/sabnzbd:/config:rw
       - /share/QDownload/sabnzbd/incomplete-downloads:/incomplete-downloads:rw
-      - /share/QDownload/transmission/:/downloads:rw
-      - /etc/localtime:/etc/localtime:ro
+      - /share/QDownload/transmission/completed:/downloads:rw
     dns: 10.10.10.10
     networks:
       - qnet-dhcp
 
   couchpotato:
     container_name: couchpotato
-    depends_on:
-      - transmission
-      - sabnzbd
     image: linuxserver/couchpotato:latest
     restart: always
-    cpu_shares: 1024
-    mem_limit: 256m
+    depends_on:
+      - watchtower
+      - transmission
+      - sabnzbd
+#    cpu_shares: 1024
+#    mem_limit: 256m
     domainname: tenfourty.com
     hostname: couchpotato
     mac_address: AA:6D:1B:43:C9:9C
@@ -81,13 +161,14 @@ services:
 
   sickchill:
     container_name: sickchill
-    depends_on:
-      - transmission
-      - sabnzbd
     image: linuxserver/sickrage:latest
     restart: always
-    cpu_shares: 1024
-    mem_limit: 256m
+    depends_on:
+      - watchtower
+      - transmission
+      - sabnzbd
+#    cpu_shares: 1024
+#    mem_limit: 256m
     domainname: tenfourty.com
     hostname: sickchill
     mac_address: 56:CE:D9:89:80:B8
@@ -107,8 +188,10 @@ services:
     container_name: plex
     image: plexinc/pms-docker:plexpass
     restart: always
-    cpu_shares: 4096
-    mem_limit: 3g
+    depends_on:
+      - watchtower
+#    cpu_shares: 4096
+#    mem_limit: 3g
     domainname: tenfourty.com
     hostname: plex
     mac_address: 02:42:bf:05:48:f3
@@ -123,15 +206,84 @@ services:
     dns: 10.10.10.10
     networks:
       - qnet-dhcp
+    #devices:
+    #  - /dev/dri:/dev/dri
+    #privileged: true
 
+  tautulli:
+    container_name: tautulli
+    image: linuxserver/tautulli
+    restart: always
+    depends_on:
+      - watchtower
+    volumes:
+      - /share/Container/container-data/tautulli/config:/config
+      - /share/Container/container-data/tautulli/logs:/logs:ro
+    ports:
+      - "8281:8181"
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Europe/Paris
 
+  ombi:
+    container_name: ombi
+    image: linuxserver/ombi
+    restart: always
+    depends_on:
+      - watchtower
+      - plex
+    volumes:
+      - /share/Container/container-data/ombi:/config
+    ports:
+      - "3579:3579"
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Europe/Paris 
+
+  organizr:
+    container_name: organizr
+    image: organizrtools/organizr-v2:php-fpm
+    restart: always
+    depends_on:
+      - watchtower
+      - mariadb
+      - phpmyadmin
+      - nextcloud
+      - couchpotato
+      - sickchill
+      - transmission
+      - sabnzbd
+      - ombi
+      - plex
+      - tautulli
+    volumes:
+      - /share/Container/container-data/organizr:/config
+    ports:
+      - "8282:80"
+    environment:
+      - PUID=1001
+      - PGID=100
+      - TZ=Europe/Paris
+
+# https://qnap-dev.github.io/container-station-api/index.html
 networks:
   qnet-dhcp:
-    driver: qnet
-    ipam:
-      driver: qnet
-      options:
-        iface: "bond0"
+    external:
+      name: qnet-dhcp
+# docker network create -d qnet --ipam-driver=qnet --ipam-opt=iface=bond0 qnet-dhcp
+
+
+#  qnet-dhcp:
+#    driver: qnet
+#    ipam:
+#      driver: qnet
+#      options:
+#        iface: "bond0"
+#      config:
+#        - subnet: 10.10.10.0/24
+#        - iface: "bond0"
 
 #  qnet-static:
 #    driver: qnet
