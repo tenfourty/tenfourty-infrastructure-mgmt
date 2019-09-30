@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3.5'
 services:
 
   watchtower:
@@ -9,100 +9,289 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --schedule "0 0 6 * * *" --cleanup
     env_file:
-      - watchtowerDockerEnvSecrets
+      - ./qnapdockerfiles/watchtower/secrets.env
     environment:
       - WATCHTOWER_NOTIFICATIONS_LEVEL=info
       - WATCHTOWER_NOTIFICATIONS=slack
       - WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-qnap
 
-  mariadb:
-    image: "linuxserver/mariadb"
-    container_name: "mariadb"
+  traefik:
+    hostname: traefik
+    image: traefik:v2.0 # The official v2.0 Traefik docker image
+    container_name: traefik
+    restart: always
     depends_on:
       - watchtower
-    hostname: mariadb
-    volumes:
-        - /share/Container/container-data/mariadb:/config
-    ports:
-      - target: 3306
-        published: 3306
-        protocol: tcp
-        mode: host
-    restart: always
-    env_file:
-      - mariadbDockerEnvSecrets
-    environment:
-      - PUID=0
-      - PGID=0
-      - TZ=Europe/Paris
-
-# WebUI for MariaDB
-  phpmyadmin:
-    container_name: phpmyadmin
-    image: phpmyadmin/phpmyadmin
-    depends_on:
-      - watchtower
-      - mariadb
-    restart: always
-#    links:
-#      - mariadb:mariadb
-    ports:
-      - 8280:80
-#    env_file:
-#      - mariadbDockerEnvSecrets
-    environment:
-      - PMA_HOST=oga2
-    hostname: phpmyadmin
-    domainname: tenfourty.com
-
-# NextCloud Your Own Cloud Storage
-  nextcloud:
-    container_name: nextcloud
-    restart: always
-    image: nextcloud
-    depends_on:
-      - watchtower
-      - mariadb
-    links:
-      - mariadb:mariadb
-    volumes:
-      - /share/NextCloud/:/var/www/html
-    environment:
-      - PUID=0
-      - PGID=0
-    hostname: nextcloud
-    domainname: tenfourty.com
-    mac_address: 8E:A5:C8:01:E6:FD
-    dns: 10.10.10.10
+    command:
+      #- "--log.level=DEBUG"
+      - "--global.sendanonymoususage=false"
+      - "--api=true"
+      - "--api.dashboard=true"
+      - "--api.debug=true"
+      - "--ping=true"
+      - "--providers.docker=true"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy"
+      - "--providers.file.filename=/etc/traefik/traefik_qnap.yml"
+      - "--providers.file.watch=true"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.web-secure.address=:443"
+      - "--certificatesresolvers.mydnschallenge.acme.dnschallenge=true"
+      - "--certificatesresolvers.mydnschallenge.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesResolvers.mydnschallenge.acme.dnschallenge.resolvers=1.1.1.1"
+      - "--certificatesresolvers.mydnschallenge.acme.email=jeremy@tenfourty.com"
+      - "--certificatesresolvers.mydnschallenge.acme.storage=/letsencrypt/acme.json"
     networks:
-      - qnet-dhcp
+      - proxy
+    dns: 10.10.10.10
+    dns_search: tenfourty.site
+    ports:
+      - 80:80     # The HTTP port - web
+      - 443:443   # The HTTPS port - web-secure
+      - 8480:8080 # The Web UI (enabled by --api)
+    env_file:
+      - ./qnapdockerfiles/traefik/secrets.env
+    volumes:
+      - /share/Container/container-data/letsencrypt:/letsencrypt
+      - /share/Container/qnapdockerfiles/traefik/traefik_qnap.yml:/etc/traefik/traefik_qnap.yml
+      - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
+    #labels:
+      #- "traefik.enable=true"
+      #- "traefik.http.services.traefik.loadBalancer.server.port=8080"
+      #- "traefik.http.routers.traefik.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/traefik`) )"
+      #- "traefik.http.routers.traefik_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/traefik`) )"
+      #- "traefik.http.routers.traefik_insecure.middlewares=https-redirect"
+      #- "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      #- "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      #- "traefik.http.routers.traefik.entrypoints=web"
+      #- "traefik.http.routers.traefik.tls=true"
+      #- "traefik.http.routers.traefik.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
 
+
+
+#       - "traefik.exposedByDefault=false"
+#      - "traefik.enable=true"
+#      - "traefik.backend=traefik"
+#      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefixStrip: /traefik"
+#      - "traefik.port=8080"
+#      - "traefik.docker.network=proxy"
+#      - "traefik.frontend.headers.SSLRedirect=true"
+#      - "traefik.frontend.headers.STSSeconds=315360000"
+#      - "traefik.frontend.headers.browserXSSFilter=true"
+#      - "traefik.frontend.headers.contentTypeNosniff=true"
+#      - "traefik.frontend.headers.forceSTSHeader=true"
+#      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+#      - "traefik.frontend.headers.STSPreload=true"
+#      - "traefik.frontend.headers.frameDeny=true"
+#      - "traefik.frontend.auth.basic.usersFile=/etc/traefik/.htpasswd"
+
+#  mariadb:
+#    image: "linuxserver/mariadb"
+#    container_name: "mariadb"
+#    depends_on:
+#      - watchtower
+#    hostname: mariadb
+#    volumes:
+#        - /share/Container/container-data/mariadb:/config
+#    ports:
+#      - target: 3306
+#        published: 3306
+#        protocol: tcp
+#        mode: host
+#    restart: always
+#    env_file:
+#      - ./qnapdockerfiles/mariadb/secrets.env
+#    environment:
+#      - PUID=0
+#      - PGID=0
+#      - TZ=Europe/Paris
+#    networks:
+#      - mariadb
+#
+## WebUI for MariaDB
+#  phpmyadmin:
+#    container_name: phpmyadmin
+#    image: phpmyadmin/phpmyadmin
+#    depends_on:
+#      - watchtower
+#      - mariadb
+#      - traefik
+#    restart: always
+#    ports:
+#      - 8280:80
+#    environment:
+#      - PMA_HOST=oga2
+#    hostname: phpmyadmin
+#    domainname: ${DOMAINNAME}
+#
+## NextCloud Your Own Cloud Storage
+#
+#  nextcloud_redis:
+#    image: redis:alpine
+#    container_name: nextcloud_redis
+#    restart: always
+#    depends_on:
+#      - watchtower
+#    networks:
+#      - nextcloud_app
+#
+#  nextcloud_app:
+#    build: ./qnapdockerfiles/nextcloud/app
+#    container_name: nextcloud_app
+#    restart: always
+#    depends_on:
+#      - watchtower
+#      - mariadb
+#      - nextcloud_redis
+#    volumes:
+#      - /share/NextCloud:/var/www/html
+#    environment:
+#      - PUID=0
+#      - PGID=0
+#    networks:
+#      - nextcloud_app
+#      - mariadb
+#
+#  nextcloud_web:
+#    build: ./qnapdockerfiles/nextcloud/web
+#    container_name: nextcloud_web
+#    restart: always
+#    depends_on:
+#      - watchtower
+#      - mariadb
+#      - nextcloud_app
+#      - traefik
+#    expose:
+#      - 80
+#    links:
+#      - nextcloud_app
+#    volumes:
+#      - /share/NextCloud:/var/www/html:ro
+#    networks:
+#      - nextcloud_app
+#      - traefik_proxy
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.backend=nextcloud_web"
+#      - "traefik.frontend.rule=Host:nextcloud.${DOMAINNAME}"
+#      - "traefik.port=80"
+#      - "traefik.protocol=https"
+#      - "traefik.docker.network=traefik_proxy"
+#      - "traefik.frontend.headers.SSLRedirect=true"
+#      - "traefik.frontend.headers.STSSeconds=315360000"
+#      - "traefik.frontend.headers.browserXSSFilter=true"
+#      - "traefik.frontend.headers.contentTypeNosniff=true"
+#      - "traefik.frontend.headers.forceSTSHeader=true"
+#      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+#      - "traefik.frontend.headers.STSPreload=true"
+##     - "traefik.frontend.headers.frameDeny=true"
+#      - "traefik.frontend.passHostHeader=true"
+#
+#  nextcloud_cron:
+#    build: ./qnapdockerfiles/nextcloud/app
+#    container_name: nextcloud_cron
+#    restart: always
+#    volumes:
+#      - /share/NextCloud:/var/www/html
+#    entrypoint: /cron.sh
+#    depends_on:
+#      - watchtower
+#      - mariadb
+#      - nextcloud_redis
+#
+##  nextcloud:
+##    container_name: nextcloud
+##    restart: always
+##    image: nextcloud
+##    depends_on:
+##      - watchtower
+##      - mariadb
+##      - traefik
+##    links:
+##      - mariadb:mariadb
+##    volumes:
+##      - /share/NextCloud/:/var/www/html
+##    environment:
+##      - PUID=0
+##      - PGID=0
+###    hostname: nextcloud
+###    domainname: ${DOMAINNAME}
+###    mac_address: 8E:A5:C8:01:E6:FD
+###    dns: ${LOCALDNS}
+##    ports:
+##      - 9190:443
+##    networks:
+##      - qnet-dhcp
+##      - traefik_proxy
+##    labels:
+##      - "traefik.enable=true"
+##      - "traefik.backend=nextcloud"
+##      - "traefik.frontend.rule=Host:nextcloud.${DOMAINNAME}"
+##      - "traefik.port=443"
+##      - "traefik.protocol=https"
+##      - "traefik.docker.network=traefik_proxy"
+##      - "traefik.frontend.headers.SSLRedirect=true"
+##      - "traefik.frontend.headers.STSSeconds=315360000"
+##      - "traefik.frontend.headers.browserXSSFilter=true"
+##      - "traefik.frontend.headers.contentTypeNosniff=true"
+##      - "traefik.frontend.headers.forceSTSHeader=true"
+##      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+##      - "traefik.frontend.headers.STSPreload=true"
+## #     - "traefik.frontend.headers.frameDeny=true"
+##      - "traefik.frontend.passHostHeader=true"
+#
   transmission:
     container_name: transmission
     image: haugene/transmission-openvpn:latest
     restart: always
     depends_on:
       - watchtower
-#    cpu_shares: 512
-#    mem_limit: 256m
-    domainname: tenfourty.com
+      - traefik
+    domainname: ${DOMAINNAME}
     hostname: transmission
-    mac_address: 72:8E:00:32:D3:49
     cap_add:
       - NET_ADMIN
     devices:
       - "/dev/net/tun"
+    ports:
+      - 8888:8888
     env_file:
-      - transmissionDockerEnv
-      - transmissionDockerEnvSecrets
+      - ./qnapdockerfiles/transmission/config.env
+      - ./qnapdockerfiles/transmission/secrets.env
     volumes:
       - /share/Container/container-data/transmission/:/config:rw
       - /share/QDownload/transmission/:/data:rw
       - /share/QDownload/transmission/:/downloads:rw
       - /etc/localtime:/etc/localtime:ro
-    dns: 10.10.10.10
+    dns: ${LOCALDNS}
     networks:
-      - qnet-dhcp
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.transmission.loadBalancer.server.port=9091"
+      - "traefik.http.routers.transmission.rule=Host(`transmission.${DOMAINNAME}`)"
+      - "traefik.http.routers.transmission.entrypoints=web-secure"
+      - "traefik.http.routers.transmission.tls=true"
+      - "traefik.http.routers.transmission.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+      - "traefik.http.routers.transmission_insecure.rule=Host(`transmission.${DOMAINNAME}`)"
+      - "traefik.http.routers.transmission_insecure.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+
+
+#      - "traefik.enable=true"
+#      - "traefik.backend=transmission-vpn"
+#      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /transmission"
+#      - "traefik.port=9091"
+#      - "traefik.docker.network=traefik_proxy"
+#      - "traefik.frontend.headers.SSLRedirect=true"
+#      - "traefik.frontend.headers.STSSeconds=315360000"
+#      - "traefik.frontend.headers.browserXSSFilter=true"
+#      - "traefik.frontend.headers.contentTypeNosniff=true"
+#      - "traefik.frontend.headers.forceSTSHeader=true"
+#      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+#      - "traefik.frontend.headers.STSPreload=true"
 
   sabnzbd:
     container_name: sabnzbd
@@ -110,15 +299,10 @@ services:
     restart: always
     depends_on:
       - watchtower
-#    cpu_shares: 1024
-#    mem_limit: 2048m
-    domainname: tenfourty.com
-    hostname: sabnzbd
-    mac_address: 1E:24:9F:B1:6C:3B
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - "/dev/net/tun"
+      - traefik
+#    ports:
+#       - 8380:8080
+#       - 9390:9090
     environment:
       - TZ=Europe/Paris
       - PUID=0 
@@ -127,9 +311,18 @@ services:
       - /share/Container/container-data/sabnzbd:/config:rw
       - /share/QDownload/sabnzbd/incomplete-downloads:/incomplete-downloads:rw
       - /share/QDownload/transmission/completed:/downloads:rw
-    dns: 10.10.10.10
     networks:
-      - qnet-dhcp
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sabnzbd.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sabnzbd`) )"
+      - "traefik.http.routers.sabnzbd_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sabnzbd`) )"
+      - "traefik.http.routers.sabnzbd_insecure.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.sabnzbd.entrypoints=web-secure"
+      - "traefik.http.routers.sabnzbd.tls=true"
+      - "traefik.http.routers.sabnzbd.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
 
   couchpotato:
     container_name: couchpotato
@@ -137,13 +330,9 @@ services:
     restart: always
     depends_on:
       - watchtower
+      - traefik
       - transmission
       - sabnzbd
-#    cpu_shares: 1024
-#    mem_limit: 256m
-    domainname: tenfourty.com
-    hostname: couchpotato
-    mac_address: AA:6D:1B:43:C9:9C
     environment:
       - TZ=Europe/Paris
       - PUID=0
@@ -152,12 +341,18 @@ services:
       - /share/QMultimedia/Video/Movies:/movies:rw
       - /share/Container/container-data/couchpotato/:/config:rw
       - /share/QDownload/transmission/:/downloads:rw
-#    ports:
-#      - "5050:5050"
-    dns: 10.10.10.10
     networks:
-      - qnet-dhcp
-#    network_mode: "host"
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.couchpotato.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/couchpotato`) )"
+      - "traefik.http.routers.couchpotato_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/couchpotato`) )"
+      - "traefik.http.routers.couchpotato_insecure.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.couchpotato.entrypoints=web-secure"
+      - "traefik.http.routers.couchpotato.tls=true"
+      - "traefik.http.routers.couchpotato.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
 
   sickchill:
     container_name: sickchill
@@ -165,13 +360,9 @@ services:
     restart: always
     depends_on:
       - watchtower
+      - traefik
       - transmission
       - sabnzbd
-#    cpu_shares: 1024
-#    mem_limit: 256m
-    domainname: tenfourty.com
-    hostname: sickchill
-    mac_address: 56:CE:D9:89:80:B8
     environment:
       - TZ=Europe/Paris
       - PUID=0
@@ -180,9 +371,32 @@ services:
       - /share/QMultimedia/Video/TV:/tv:rw
       - /share/Container/container-data/sickrage/:/config:rw
       - /share/QDownload/transmission/:/downloads:rw
-    dns: 10.10.10.10
     networks:
-      - qnet-dhcp
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sickchill.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sickchill`) )"
+      - "traefik.http.routers.sickchill_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sickchill`) )"
+      - "traefik.http.routers.sickchill_insecure.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.sickchill.entrypoints=web-secure"
+      - "traefik.http.routers.sickchill.tls=true"
+      - "traefik.http.routers.sickchill.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+
+#      - "traefik.backend=sickchill"
+#      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /sickchill"
+#      - "traefik.port=8081"
+#      - "traefik.docker.network=traefik_proxy"
+#      - "traefik.frontend.headers.SSLRedirect=true"
+#      - "traefik.frontend.headers.STSSeconds=315360000"
+#      - "traefik.frontend.headers.browserXSSFilter=true"
+#      - "traefik.frontend.headers.contentTypeNosniff=true"
+#      - "traefik.frontend.headers.forceSTSHeader=true"
+#      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+#      - "traefik.frontend.headers.STSPreload=true"
+#      - "traefik.frontend.passHostHeader=true"
+#      - "traefik.frontend.whiteList.sourceRange=${LOCALNETWORKS}"
 
   plex:
     container_name: plex
@@ -190,25 +404,54 @@ services:
     restart: always
     depends_on:
       - watchtower
-#    cpu_shares: 4096
-#    mem_limit: 3g
-    domainname: tenfourty.com
-    hostname: plex
-    mac_address: 02:42:bf:05:48:f3
+      - traefik
+    ports:
+      #- 32400:32400/tcp
+      - 3005:3005/tcp
+      - 8324:8324/tcp
+      - 32469:32469/tcp
+      - 1901:1900/udp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32414:32414/udp
     environment:
       - TZ=Europe/Paris
       - PLEX_UID=0
       - PLEX_GID=0
+      - ADVERTISE_IP=https://plex.tenfourty.site/
     volumes:
       - /share/Container/container-data/plex/config:/config:rw
       - /share/QMultimedia:/data:rw
       - /share/Container/container-data/plex/transcode:/transcode:rw
-    dns: 10.10.10.10
     networks:
-      - qnet-dhcp
-    #devices:
-    #  - /dev/dri:/dev/dri
-    #privileged: true
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.plex.loadBalancer.server.port=32400"
+      - "traefik.http.routers.plex.rule=Host(`plex.${DOMAINNAME}`)"
+      - "traefik.http.routers.plex_insecure.rule=Host(`plex.${DOMAINNAME}`)"
+      - "traefik.http.routers.plex_insecure.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.plex.entrypoints=web-secure"
+      - "traefik.http.routers.plex.tls=true"
+      - "traefik.http.routers.plex.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+
+#      - "traefik.backend=plex"
+#      - "traefik.frontend.rule=Host:plex.tenfourty.com"
+#      - "traefik.port=32400"
+##      - "traefik.protocol=http"
+#      - "traefik.docker.network=traefik_proxy"
+#      - "traefik.frontend.headers.SSLRedirect=true"
+##      - "traefik.frontend.headers.STSSeconds=315360000"
+##      - "traefik.frontend.headers.browserXSSFilter=true"
+##      - "traefik.frontend.headers.contentTypeNosniff=true"
+##      - "traefik.frontend.headers.forceSTSHeader=true"
+##      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+##      - "traefik.frontend.headers.STSPreload=true"
+##      - "traefik.frontend.headers.frameDeny=true"
+##      - "traefik.frontend.passHostHeader=true"
+
 
   tautulli:
     container_name: tautulli
@@ -216,15 +459,40 @@ services:
     restart: always
     depends_on:
       - watchtower
+      - traefik
+      - plex
     volumes:
       - /share/Container/container-data/tautulli/config:/config
       - /share/Container/container-data/tautulli/logs:/logs:ro
-    ports:
-      - "8281:8181"
     environment:
       - PUID=0
       - PGID=0
       - TZ=Europe/Paris
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tautulli.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/tautulli`) )"
+      - "traefik.http.routers.tautulli_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/tautulli`) )"
+      - "traefik.http.routers.tautulli_insecure.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.tautulli.entrypoints=web-secure"
+      - "traefik.http.routers.tautulli.tls=true"
+      - "traefik.http.routers.tautulli.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+
+#      - "traefik.backend=tautulli"
+#      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /tautulli"
+#      - "traefik.port=8181"
+#      - "traefik.docker.network=traefik_proxy"
+#      - "traefik.frontend.headers.SSLRedirect=true"
+#      - "traefik.frontend.headers.STSSeconds=315360000"
+#      - "traefik.frontend.headers.browserXSSFilter=true"
+#      - "traefik.frontend.headers.contentTypeNosniff=true"
+#      - "traefik.frontend.headers.forceSTSHeader=true"
+#      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+#      - "traefik.frontend.headers.STSPreload=true"
+#      - "traefik.frontend.passHostHeader=true"
 
   ombi:
     container_name: ombi
@@ -232,15 +500,41 @@ services:
     restart: always
     depends_on:
       - watchtower
+      - traefik
       - plex
+      - sickchill
+      - couchpotato
     volumes:
       - /share/Container/container-data/ombi:/config
-    ports:
-      - "3579:3579"
     environment:
       - PUID=0
       - PGID=0
-      - TZ=Europe/Paris 
+      - TZ=Europe/Paris
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ombi.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/ombi`) )"
+      - "traefik.http.routers.ombi_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/ombi`) )"
+      - "traefik.http.routers.ombi_insecure.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.ombi.entrypoints=web-secure"
+      - "traefik.http.routers.ombi.tls=true"
+      - "traefik.http.routers.ombi.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+
+#      - "traefik.backend=ombi"
+#      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /ombi"
+#      - "traefik.port=3579"
+#      - "traefik.docker.network=traefik_proxy"
+#      - "traefik.frontend.headers.SSLRedirect=true"
+#      - "traefik.frontend.headers.STSSeconds=315360000"
+#      - "traefik.frontend.headers.browserXSSFilter=true"
+#      - "traefik.frontend.headers.contentTypeNosniff=true"
+#      - "traefik.frontend.headers.forceSTSHeader=true"
+#      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+#      - "traefik.frontend.headers.STSPreload=true"
+#      - "traefik.frontend.passHostHeader=true"
 
   organizr:
     container_name: organizr
@@ -248,9 +542,10 @@ services:
     restart: always
     depends_on:
       - watchtower
-      - mariadb
-      - phpmyadmin
-      - nextcloud
+      - traefik
+#      - mariadb
+#      - phpmyadmin
+##      - nextcloud
       - couchpotato
       - sickchill
       - transmission
@@ -260,44 +555,52 @@ services:
       - tautulli
     volumes:
       - /share/Container/container-data/organizr:/config
-    ports:
-      - "8282:80"
     environment:
       - PUID=1001
       - PGID=100
       - TZ=Europe/Paris
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.home.rule=Host(`home.${DOMAINNAME}`)"
+      - "traefik.http.routers.home_insecure.rule=Host(`home.${DOMAINNAME}`)"
+      - "traefik.http.routers.home_insecure.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      - "traefik.http.routers.home.entrypoints=web-secure"
+      - "traefik.http.routers.home.tls=true"
+      - "traefik.http.routers.home.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+#      - "traefik.enable=true"
+#      - "traefik.backend=organizr"
+#      - "traefik.frontend.rule=Host:home.tenfourty.com"  
+#      - "traefik.port=80"
+#      - "traefik.docker.network=traefik_proxy"
+#      - "traefik.frontend.headers.SSLRedirect=true"
+#      - "traefik.frontend.headers.STSSeconds=315360000"
+#      - "traefik.frontend.headers.browserXSSFilter=true"
+#      - "traefik.frontend.headers.contentTypeNosniff=true"
+#      - "traefik.frontend.headers.forceSTSHeader=true"
+#      - "traefik.frontend.headers.SSLHost=home.tenfourty.com"
+#      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+#      - "traefik.frontend.headers.STSPreload=true"
+#      - "traefik.frontend.headers.frameDeny=true"
 
 # https://qnap-dev.github.io/container-station-api/index.html
 networks:
-  qnet-dhcp:
-    external:
-      name: qnet-dhcp
-# docker network create -d qnet --ipam-driver=qnet --ipam-opt=iface=bond0 qnet-dhcp
 
+#  mariadb:
+#    external: true
+#    driver_opts:
+#      encrypted: 1
+#
+#  nextcloud_app:
+#    external: true
+#    driver_opts:
+#      encrypted: 1
 
-#  qnet-dhcp:
-#    driver: qnet
-#    ipam:
-#      driver: qnet
-#      options:
-#        iface: "bond0"
-#      config:
-#        - subnet: 10.10.10.0/24
-#        - iface: "bond0"
+# docker network create proxy
+  proxy:
+    external: true
+    name: proxy
 
-#  qnet-static:
-#    driver: qnet
-#    ipam:
-#      driver: qnet
-#      options:
-#        iface: "bond0"
-#      config:
-#        - subnet: 10.10.10.0/24
-#          gateway: 10.10.10.1
-
-#    logging:
-#      driver: syslog
-#      options:
-#        syslog-address: "tcp://192.168.1.1:514"
-#        tag: couchpotato
-#        syslog-format: rfc5424micro

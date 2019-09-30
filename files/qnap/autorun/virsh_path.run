@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# script to set my path for virsh
+
+/bin/echo "export PATH=/QVS/usr/bin:\$PATH" >> /etc/profile
