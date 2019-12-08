@@ -261,8 +261,8 @@ services:
       - ./qnapdockerfiles/transmission/secrets.env
     volumes:
       - /share/Container/container-data/transmission/:/config:rw
-      - /share/QDownload/transmission/:/data:rw
-      - /share/QDownload/transmission/:/downloads:rw
+      - /share/Download/transmission/:/data:rw
+      - /share/Download/transmission/:/downloads:rw
       - /etc/localtime:/etc/localtime:ro
     dns: ${LOCALDNS}
     networks:
@@ -309,8 +309,8 @@ services:
       - PGID=0
     volumes:
       - /share/Container/container-data/sabnzbd:/config:rw
-      - /share/QDownload/sabnzbd/incomplete-downloads:/incomplete-downloads:rw
-      - /share/QDownload/transmission/completed:/downloads:rw
+      - /share/Download/sabnzbd/incomplete-downloads:/incomplete-downloads:rw
+      - /share/Download/transmission/completed:/downloads:rw
     networks:
       - proxy
     labels:
@@ -338,9 +338,9 @@ services:
       - PUID=0
       - PGID=0
     volumes:
-      - /share/QMultimedia/Video/Movies:/movies:rw
+      - /share/Multimedia/Video/Movies:/movies:rw
       - /share/Container/container-data/couchpotato/:/config:rw
-      - /share/QDownload/transmission/:/downloads:rw
+      - /share/Download/transmission/:/downloads:rw
     networks:
       - proxy
     labels:
@@ -354,9 +354,9 @@ services:
       - "traefik.http.routers.couchpotato.tls=true"
       - "traefik.http.routers.couchpotato.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
 
-  sickchill:
-    container_name: sickchill
-    image: linuxserver/sickrage:latest
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
     restart: always
     depends_on:
       - watchtower
@@ -364,25 +364,70 @@ services:
       - transmission
       - sabnzbd
     environment:
-      - TZ=Europe/Paris
       - PUID=0
       - PGID=0
+      - TZ=Europe/Paris
+      - UMASK_SET=022 #optional
     volumes:
-      - /share/QMultimedia/Video/TV:/tv:rw
-      - /share/Container/container-data/sickrage/:/config:rw
-      - /share/QDownload/transmission/:/downloads:rw
+      - /share/Container/container-data/sonarr/:/config:rw
+      - /share/Multimedia/Video/TV:/tv:rw
+      - /share/Download/transmission/completed/:/downloads:rw
+    ports:
+      - 8989:8989
     networks:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sickchill.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sickchill`) )"
-      - "traefik.http.routers.sickchill_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sickchill`) )"
-      - "traefik.http.routers.sickchill_insecure.middlewares=https-redirect"
+      - "traefik.http.services.sonarr.loadBalancer.server.port=8989"
+      - "traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAINNAME}`)"
+      - "traefik.http.routers.sonarr_insecure.rule=Host(`sonarr.${DOMAINNAME}`)"
+      - "traefik.http.routers.sonarr_insecure.middlewares=https-redirect"
       - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
-      - "traefik.http.routers.sickchill.entrypoints=web-secure"
-      - "traefik.http.routers.sickchill.tls=true"
-      - "traefik.http.routers.sickchill.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+      - "traefik.http.routers.sonarr.entrypoints=web-secure"
+      - "traefik.http.routers.sonarr.tls=true"
+      - "traefik.http.routers.sonarr.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.sickchill.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sonarr`) )"
+#      - "traefik.http.routers.sickchill_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sonarr`) )"
+#      - "traefik.http.routers.sickchill_insecure.middlewares=https-redirect"
+#      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+#      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+#      - "traefik.http.routers.sickchill.entrypoints=web-secure"
+#      - "traefik.http.routers.sickchill.tls=true"
+#      - "traefik.http.routers.sickchill.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+
+#  sickchill:
+#    container_name: sickchill
+#    image: linuxserver/sickrage:latest
+#    restart: always
+#    depends_on:
+#      - watchtower
+#      - traefik
+#      - transmission
+#      - sabnzbd
+#    environment:
+#      - TZ=Europe/Paris
+#      - PUID=0
+#      - PGID=0
+#    volumes:
+#      - /share/Multimedia/Video/TV:/tv:rw
+#      - /share/Container/container-data/sickrage/:/config:rw
+#      - /share/Download/transmission/:/downloads:rw
+#    networks:
+#      - proxy
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.sickchill.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sickchill`) )"
+#      - "traefik.http.routers.sickchill_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/sickchill`) )"
+#      - "traefik.http.routers.sickchill_insecure.middlewares=https-redirect"
+#      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+#      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+#      - "traefik.http.routers.sickchill.entrypoints=web-secure"
+#      - "traefik.http.routers.sickchill.tls=true"
+#      - "traefik.http.routers.sickchill.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
 
 #      - "traefik.backend=sickchill"
 #      - "traefik.frontend.rule=Host:home.${DOMAINNAME}; PathPrefix: /sickchill"
@@ -410,7 +455,7 @@ services:
       - 3005:3005/tcp
       - 8324:8324/tcp
       - 32469:32469/tcp
-      - 1901:1900/udp
+      - 1900:1900/udp
       - 32410:32410/udp
       - 32412:32412/udp
       - 32414:32414/udp
@@ -421,8 +466,8 @@ services:
       - ADVERTISE_IP=https://plex.tenfourty.site/
     volumes:
       - /share/Container/container-data/plex/config:/config:rw
-      - /share/QMultimedia:/data:rw
-      - /share/Container/container-data/plex/transcode:/transcode:rw
+      - /share/Multimedia:/data:rw
+      - /share/Multimedia/PlexTranscode:/transcode:rw
     networks:
       - proxy
     labels:
@@ -502,7 +547,8 @@ services:
       - watchtower
       - traefik
       - plex
-      - sickchill
+#      - sickchill
+      - sonarr
       - couchpotato
     volumes:
       - /share/Container/container-data/ombi:/config
@@ -547,7 +593,8 @@ services:
 #      - phpmyadmin
 ##      - nextcloud
       - couchpotato
-      - sickchill
+#      - sickchill
+      - sonarr
       - transmission
       - sabnzbd
       - ombi
@@ -585,6 +632,49 @@ services:
 #      - "traefik.frontend.headers.STSIncludeSubdomains=true"
 #      - "traefik.frontend.headers.STSPreload=true"
 #      - "traefik.frontend.headers.frameDeny=true"
+
+  insync-app:
+    image: tiredofit/insync
+    container_name: insync-app
+    restart: always
+    depends_on:
+      - watchtower
+    environment:
+      - INSYNC1_USERNAME=jeremy@tenfourty.com
+      - INSYNC1_DOWNLOAD=ms-office
+    volumes:
+      - /share/Jeremy/GDrive:/data
+
+  homeassistant:
+    container_name: home-assistant
+    image: homeassistant/home-assistant:stable
+    depends_on:
+      - traefik
+      - watchtower
+    volumes:
+      - /share/Container/container-data/homeassistant:/config
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    environment:
+      - TZ=Europe/Paris
+    restart: always
+#    network_mode: host
+    ports:
+      - 8123:8123
+      - 1400:1400
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.homeassistant.loadBalancer.server.port=8123"
+      - "traefik.http.routers.homeassistant.rule=Host(`homeassistant.${DOMAINNAME}`)"
+      - "traefik.http.routers.homeassistant.entrypoints=web-secure"
+      - "traefik.http.routers.homeassistant.tls=true"
+      - "traefik.http.routers.homeassistant.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+      - "traefik.http.routers.homeassistant_insecure.rule=Host(`homeassistant.${DOMAINNAME}`)"
+      - "traefik.http.routers.homeassistant_insecure.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
 
 # https://qnap-dev.github.io/container-station-api/index.html
 networks:
