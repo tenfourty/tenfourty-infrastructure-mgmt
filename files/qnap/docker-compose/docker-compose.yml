@@ -44,7 +44,7 @@ services:
       - "--certificatesresolvers.mydnschallenge.acme.storage=/letsencrypt/acme.json"
     networks:
       - proxy
-    dns: 10.10.10.10
+    dns: ${LOCALDNS}
     dns_search: tenfourty.site
     ports:
       - 80:80     # The HTTP port - web
@@ -56,18 +56,6 @@ services:
       - /share/Container/container-data/letsencrypt:/letsencrypt
       - /share/Container/qnapdockerfiles/traefik/traefik_qnap.yml:/etc/traefik/traefik_qnap.yml
       - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
-    #labels:
-      #- "traefik.enable=true"
-      #- "traefik.http.services.traefik.loadBalancer.server.port=8080"
-      #- "traefik.http.routers.traefik.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/traefik`) )"
-      #- "traefik.http.routers.traefik_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/traefik`) )"
-      #- "traefik.http.routers.traefik_insecure.middlewares=https-redirect"
-      #- "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
-      #- "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
-      #- "traefik.http.routers.traefik.entrypoints=web"
-      #- "traefik.http.routers.traefik.tls=true"
-      #- "traefik.http.routers.traefik.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
-
 
 
 #       - "traefik.exposedByDefault=false"
@@ -245,6 +233,11 @@ services:
     container_name: transmission
     image: haugene/transmission-openvpn:latest
     restart: always
+    healthcheck:
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 2m
     depends_on:
       - watchtower
       - traefik
@@ -261,8 +254,8 @@ services:
       - ./qnapdockerfiles/transmission/secrets.env
     volumes:
       - /share/Container/container-data/transmission/:/config:rw
-      - /share/Download/transmission/:/data:rw
-      - /share/Download/transmission/:/downloads:rw
+      - /share/QDownload/transmission/:/data:rw
+      - /share/QDownload/transmission/:/downloads:rw
       - /etc/localtime:/etc/localtime:ro
     dns: ${LOCALDNS}
     networks:
@@ -309,8 +302,8 @@ services:
       - PGID=0
     volumes:
       - /share/Container/container-data/sabnzbd:/config:rw
-      - /share/Download/sabnzbd/incomplete-downloads:/incomplete-downloads:rw
-      - /share/Download/transmission/completed:/downloads:rw
+      - /share/QDownload/sabnzbd/incomplete-downloads:/incomplete-downloads:rw
+      - /share/QDownload/transmission/completed:/downloads:rw
     networks:
       - proxy
     labels:
@@ -324,9 +317,9 @@ services:
       - "traefik.http.routers.sabnzbd.tls=true"
       - "traefik.http.routers.sabnzbd.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
 
-  couchpotato:
-    container_name: couchpotato
-    image: linuxserver/couchpotato:latest
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
     restart: always
     depends_on:
       - watchtower
@@ -334,25 +327,29 @@ services:
       - transmission
       - sabnzbd
     environment:
-      - TZ=Europe/Paris
       - PUID=0
       - PGID=0
+      - TZ=Europe/Paris
+      - UMASK_SET=022 #optional
     volumes:
-      - /share/Multimedia/Video/Movies:/movies:rw
-      - /share/Container/container-data/couchpotato/:/config:rw
-      - /share/Download/transmission/:/downloads:rw
+      - /share/Container/container-data/radarr/:/config:rw
+      - /share/QMultimedia/Video/Movies:/movies:rw
+      - /share/QDownload/transmission/completed/:/downloads:rw
+    ports:
+      - 7878:7878
     networks:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.couchpotato.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/couchpotato`) )"
-      - "traefik.http.routers.couchpotato_insecure.rule=( Host(`home.${DOMAINNAME}`) && PathPrefix(`/couchpotato`) )"
-      - "traefik.http.routers.couchpotato_insecure.middlewares=https-redirect"
+      - "traefik.http.services.radarr.loadBalancer.server.port=7878"
+      - "traefik.http.routers.radarr.rule=Host(`radarr.${DOMAINNAME}`)"
+      - "traefik.http.routers.radarr_insecure.rule=Host(`radarr.${DOMAINNAME}`)"
+      - "traefik.http.routers.radarr_insecure.middlewares=https-redirect"
       - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
-      - "traefik.http.routers.couchpotato.entrypoints=web-secure"
-      - "traefik.http.routers.couchpotato.tls=true"
-      - "traefik.http.routers.couchpotato.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
+      - "traefik.http.routers.radarr.entrypoints=web-secure"
+      - "traefik.http.routers.radarr.tls=true"
+      - "traefik.http.routers.sonarr.tls.certresolver=mydnschallenge" # Uses the Host rule to define which certificate to issue
 
   sonarr:
     image: linuxserver/sonarr
@@ -370,8 +367,8 @@ services:
       - UMASK_SET=022 #optional
     volumes:
       - /share/Container/container-data/sonarr/:/config:rw
-      - /share/Multimedia/Video/TV:/tv:rw
-      - /share/Download/transmission/completed/:/downloads:rw
+      - /share/QMultimedia/Video/TV:/tv:rw
+      - /share/QDownload/transmission/completed/:/downloads:rw
     ports:
       - 8989:8989
     networks:
@@ -413,9 +410,9 @@ services:
 #      - PUID=0
 #      - PGID=0
 #    volumes:
-#      - /share/Multimedia/Video/TV:/tv:rw
+#      - /share/QMultimedia/Video/TV:/tv:rw
 #      - /share/Container/container-data/sickrage/:/config:rw
-#      - /share/Download/transmission/:/downloads:rw
+#      - /share/QDownload/transmission/:/downloads:rw
 #    networks:
 #      - proxy
 #    labels:
@@ -447,6 +444,11 @@ services:
     container_name: plex
     image: plexinc/pms-docker:plexpass
     restart: always
+    healthcheck:
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 2m
     depends_on:
       - watchtower
       - traefik
@@ -466,8 +468,8 @@ services:
       - ADVERTISE_IP=https://plex.tenfourty.site/
     volumes:
       - /share/Container/container-data/plex/config:/config:rw
-      - /share/Multimedia:/data:rw
-      - /share/Multimedia/PlexTranscode:/transcode:rw
+      - /share/QMultimedia:/data:rw
+      - /share/QMultimedia/PlexTranscode:/transcode:rw
     networks:
       - proxy
     labels:
@@ -549,7 +551,7 @@ services:
       - plex
 #      - sickchill
       - sonarr
-      - couchpotato
+      - radarr
     volumes:
       - /share/Container/container-data/ombi:/config
     environment:
@@ -586,13 +588,18 @@ services:
     container_name: organizr
     image: organizrtools/organizr-v2:php-fpm
     restart: always
+    healthcheck:
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 2m
     depends_on:
       - watchtower
       - traefik
 #      - mariadb
 #      - phpmyadmin
 ##      - nextcloud
-      - couchpotato
+      - radarr
 #      - sickchill
       - sonarr
       - transmission
